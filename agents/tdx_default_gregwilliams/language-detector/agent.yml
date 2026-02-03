@@ -1,0 +1,4 @@
+name: language-detector
+model: claude-4.5-haiku
+temperature: 0.1
+max_tool_iterations: 4

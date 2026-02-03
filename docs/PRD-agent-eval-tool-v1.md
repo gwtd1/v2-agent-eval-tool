@@ -154,6 +154,13 @@ TDX (Agent Execution) → Agent Eval Tool (Human Review) → Evaluation Reports
 | D12 | Multi-reviewer collaboration | Multi-user architecture |
 | D13 | LLM-based error clustering | Post-MVP analytics |
 | D14 | Cloud deployment | V1 is local-first |
+| D15 | Pagination for test runs and test cases | Small dataset in V1; unnecessary complexity |
+| D16 | Automatic retry with exponential backoff | V1 uses user-initiated retry button |
+| D17 | Zod schema validation for API requests | V1 uses manual validation with early returns |
+| D18 | Full service layer architecture | V1 keeps simple CRUD in route handlers |
+| D19 | Structured JSON logging for production | V1 uses console logging for development |
+| D20 | Multi-reviewer support (reviewerId field) | V1 is single-user; field removed for simplicity |
+| D21 | "Run Test" button in UI | API: `curl -X POST http://localhost:3000/api/test -H "Content-Type: application/json" -d '{"agentPath": "agents/tdx_default_gregwilliams/fact-checker"}'` |
 
 ---
 

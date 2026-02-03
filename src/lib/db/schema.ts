@@ -23,9 +23,8 @@ CREATE TABLE IF NOT EXISTS test_cases (
 CREATE TABLE IF NOT EXISTS evaluations (
   id TEXT PRIMARY KEY,
   test_case_id TEXT NOT NULL,
-  rating TEXT CHECK (rating IN ('good', 'bad') OR rating IS NULL),
+  rating TEXT CHECK (rating IN ('true', 'false') OR rating IS NULL),
   notes TEXT DEFAULT '',
-  reviewer_id TEXT,
   duration_ms INTEGER,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,

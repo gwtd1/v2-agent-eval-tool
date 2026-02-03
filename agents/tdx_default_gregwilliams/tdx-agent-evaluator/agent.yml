@@ -1,0 +1,10 @@
+name: tdx-agent-evaluator
+model: claude-4.5-sonnet
+temperature: 0.1
+max_tool_iterations: 4
+
+outputs:
+  - name: evaluation_result
+    function_name: submit_evaluation
+    function_description: Submit the evaluation result for the agent conversation
+    json_schema: '{"type":"object","properties":{"plan":{"type":"string","description":"Brief evaluation strategy"},"thinking":{"type":"string","description":"Detailed analysis of the conversation"},"pass":{"type":"boolean","description":"Whether the agent passed the evaluation"},"reason":{"type":"string","description":"Concise explanation of pass/fail decision (1-2 sentences)"}},"required":["plan","thinking","pass","reason"],"additionalProperties":false}'

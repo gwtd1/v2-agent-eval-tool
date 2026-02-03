@@ -1,9 +1,8 @@
 export interface Evaluation {
   id: string;
   testCaseId: string;
-  rating: 'good' | 'bad' | null;
+  rating: 'true' | 'false' | null;
   notes: string;
-  reviewerId: string | null;
   durationMs: number | null;
   createdAt: string;
   updatedAt: string;

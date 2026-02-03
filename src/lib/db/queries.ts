@@ -49,6 +49,18 @@ export function updateTestRunStatus(id: string, status: TestRun['status'], rawOu
   }
 }
 
+/**
+ * Hard delete a test run and all associated test cases and evaluations.
+ * Cascade delete is configured in the schema, so this will automatically
+ * remove all associated records.
+ */
+export function deleteTestRun(id: string): boolean {
+  const db = getDb();
+  const stmt = db.prepare('DELETE FROM test_runs WHERE id = ?');
+  const result = stmt.run(id);
+  return result.changes > 0;
+}
+
 // Test Cases
 export function createTestCase(data: Omit<TestCase, 'id' | 'createdAt'>): TestCase {
   const db = getDb();

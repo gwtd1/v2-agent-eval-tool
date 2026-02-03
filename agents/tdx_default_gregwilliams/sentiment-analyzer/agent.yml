@@ -1,0 +1,4 @@
+name: sentiment-analyzer
+model: claude-4.5-haiku
+temperature: 0.3
+max_tool_iterations: 1

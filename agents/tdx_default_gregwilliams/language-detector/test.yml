@@ -1,0 +1,42 @@
+# Test cases for language-detector agent
+
+tests:
+  - name: "Detect French"
+    user_input: "Bonjour, comment allez-vous?"
+    criteria: "Response is exactly 'French' with no additional text"
+
+  - name: "Detect Spanish"
+    user_input: "Hola, ¿cómo estás?"
+    criteria: "Response is exactly 'Spanish' with no additional text"
+
+  - name: "Detect English"
+    user_input: "Hello, how are you?"
+    criteria: "Response is exactly 'English' with no additional text"
+
+  - name: "Detect German"
+    user_input: "Guten Tag, wie geht es Ihnen?"
+    criteria: "Response is exactly 'German' with no additional text"
+
+  - name: "Detect Japanese"
+    user_input: "こんにちは、お元気ですか？"
+    criteria: "Response is exactly 'Japanese' with no additional text"
+
+  - name: "Detect Italian"
+    user_input: "Ciao, come stai?"
+    criteria: "Response is exactly 'Italian' with no additional text"
+
+  - name: "Numbers should return Unknown"
+    user_input: "123456789"
+    criteria: "Response is exactly 'Unknown' with no additional text"
+
+  - name: "Symbols should return Unknown"
+    user_input: "@#$%^&*()"
+    criteria: "Response is exactly 'Unknown' with no additional text"
+
+  - name: "Mixed symbols and numbers"
+    user_input: "123@#$456"
+    criteria: "Response is exactly 'Unknown' with no additional text"
+
+  - name: "Detect Portuguese"
+    user_input: "Olá, como você está?"
+    criteria: "Response is exactly 'Portuguese' with no additional text"

@@ -22,3 +22,13 @@ export function closeDb(): void {
     db = null;
   }
 }
+
+/**
+ * Execute a function within a database transaction.
+ * All database operations within the function will be atomic -
+ * either all succeed or all are rolled back.
+ */
+export function withTransaction<T>(fn: () => T): T {
+  const db = getDb();
+  return db.transaction(fn)();
+}

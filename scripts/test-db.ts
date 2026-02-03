@@ -47,7 +47,7 @@ console.log('✓ Found', testCases.length, 'test case(s) for run');
 // Create an evaluation
 const evaluation = createEvaluation({
   testCaseId: testCase.id,
-  rating: 'good',
+  rating: 'true',
   notes: 'Correct answer'
 });
 console.log('\n✓ Created evaluation:', evaluation.id);

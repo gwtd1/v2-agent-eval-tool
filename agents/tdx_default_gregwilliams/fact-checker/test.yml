@@ -1,0 +1,34 @@
+# Test cases for fact-checker agent
+
+tests:
+  - name: "Basic true fact - Earth orbits Sun"
+    user_input: "The Earth orbits around the Sun."
+    criteria: "Response contains 'True'"
+
+  - name: "Basic false fact - Moon made of cheese"
+    user_input: "The Moon is made of cheese."
+    criteria: "Response contains 'False'"
+
+  - name: "Historical fact - World War II dates"
+    user_input: "World War II ended in 1945."
+    criteria: "Response contains 'True'"
+
+  - name: "Scientific fact - Water composition"
+    user_input: "Water is composed of hydrogen and oxygen."
+    criteria: "Response contains 'True'"
+
+  - name: "False scientific claim"
+    user_input: "Humans have four lungs."
+    criteria: "Response contains 'False'"
+
+  - name: "Geographic fact"
+    user_input: "Paris is the capital of France."
+    criteria: "Response contains 'True'"
+
+  - name: "Mathematical fact"
+    user_input: "2 + 2 equals 5."
+    criteria: "Response contains 'False'"
+
+  - name: "Biological fact"
+    user_input: "Photosynthesis is the process by which plants convert sunlight into energy."
+    criteria: "Response contains 'True'"
