@@ -25,12 +25,13 @@ export async function GET(
   });
 }
 
-export async function PUT(
+async function handleUpdate(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
+  method: string
 ) {
   const { id } = await params;
-  console.log(`[API] PUT /api/evaluations/${id}`);
+  console.log(`[API] ${method} /api/evaluations/${id}`);
 
   // Parse request body
   let body: { rating?: string | null; notes?: string; durationMs?: number };
@@ -102,4 +103,18 @@ export async function PUT(
   return NextResponse.json({
     evaluation: updated,
   });
+}
+
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return handleUpdate(request, context, 'PUT');
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return handleUpdate(request, context, 'PATCH');
 }

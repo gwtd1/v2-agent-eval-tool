@@ -1,17 +1,19 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useCallback } from 'react';
+import { Suspense, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ThreePanel } from '@/components/layout/ThreePanel';
 import { TestCaseList } from '@/components/panels/TestCaseList';
 import { ConversationView } from '@/components/panels/ConversationView';
-import { EvaluationPanel } from '@/components/panels/EvaluationPanel';
+import { EvaluationPanel, EvaluationPanelHandle } from '@/components/panels/EvaluationPanel';
 import { EvaluationProvider, useEvaluation } from '@/context/EvaluationContext';
 import { useKeyboardNavigation } from '@/lib/utils/keyboard';
+import { exportEvaluationsToCSV } from '@/lib/utils/csv';
 
 function ReviewContentInner() {
   const searchParams = useSearchParams();
   const testRunId = searchParams.get('testRunId');
+  const evaluationPanelRef = useRef<EvaluationPanelHandle>(null);
 
   const {
     evaluations,
@@ -38,12 +40,16 @@ function ReviewContentInner() {
 
   const handlePrev = useCallback(() => {
     if (selectedIndex > 0) {
+      // Flush pending notes save before navigating
+      evaluationPanelRef.current?.flushPendingSave();
       selectTestCase(evaluations[selectedIndex - 1].evaluation.testCaseId);
     }
   }, [selectedIndex, evaluations, selectTestCase]);
 
   const handleNext = useCallback(() => {
     if (selectedIndex < evaluations.length - 1) {
+      // Flush pending notes save before navigating
+      evaluationPanelRef.current?.flushPendingSave();
       selectTestCase(evaluations[selectedIndex + 1].evaluation.testCaseId);
     }
   }, [selectedIndex, evaluations, selectTestCase]);
@@ -59,6 +65,12 @@ function ReviewContentInner() {
       updateNotes(selectedEvaluation.evaluation.id, notes);
     }
   }, [selectedEvaluation, updateNotes]);
+
+  const handleExportCSV = useCallback(() => {
+    if (testRunId && evaluations.length > 0) {
+      exportEvaluationsToCSV(evaluations, testRunId);
+    }
+  }, [evaluations, testRunId]);
 
   // Keyboard navigation
   useKeyboardNavigation({
@@ -116,6 +128,7 @@ function ReviewContentInner() {
       }
       right={
         <EvaluationPanel
+          ref={evaluationPanelRef}
           evaluation={selectedEvaluation?.evaluation ?? null}
           onRate={handleRate}
           onNotesChange={handleNotesChange}
@@ -123,6 +136,8 @@ function ReviewContentInner() {
           onNext={handleNext}
           hasPrev={selectedIndex > 0}
           hasNext={selectedIndex < evaluations.length - 1}
+          onExportCSV={handleExportCSV}
+          hasEvaluations={evaluations.length > 0}
         />
       }
     />

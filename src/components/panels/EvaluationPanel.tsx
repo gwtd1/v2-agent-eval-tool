@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/Button';
 import { RadioGroup } from '@/components/ui/RadioGroup';
 import { Textarea } from '@/components/ui/Textarea';
@@ -14,6 +14,12 @@ interface EvaluationPanelProps {
   onNext: () => void;
   hasPrev: boolean;
   hasNext: boolean;
+  onExportCSV?: () => void;
+  hasEvaluations?: boolean;
+}
+
+export interface EvaluationPanelHandle {
+  flushPendingSave: () => void;
 }
 
 const RATING_OPTIONS = [
@@ -24,7 +30,7 @@ const RATING_OPTIONS = [
 // Debounce delay for auto-saving notes
 const NOTES_SAVE_DELAY = 500;
 
-export function EvaluationPanel({
+export const EvaluationPanel = forwardRef<EvaluationPanelHandle, EvaluationPanelProps>(function EvaluationPanel({
   evaluation,
   onRate,
   onNotesChange,
@@ -32,7 +38,9 @@ export function EvaluationPanel({
   onNext,
   hasPrev,
   hasNext,
-}: EvaluationPanelProps) {
+  onExportCSV,
+  hasEvaluations = false,
+}, ref) {
   // Local state for notes to enable immediate UI updates
   const [localNotes, setLocalNotes] = useState(evaluation?.notes || '');
   const [isSaving, setIsSaving] = useState(false);
@@ -75,16 +83,38 @@ export function EvaluationPanel({
     debouncedSave(newNotes);
   };
 
-  // Save immediately on blur
-  const handleNotesBlur = () => {
+  // Flush any pending notes save immediately
+  const flushPendingSave = useCallback(() => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
     }
     if (localNotes !== evaluation?.notes) {
       onNotesChange(localNotes);
     }
     setIsSaving(false);
+  }, [localNotes, evaluation?.notes, onNotesChange]);
+
+  // Expose flush function to parent via ref
+  useImperativeHandle(ref, () => ({
+    flushPendingSave,
+  }), [flushPendingSave]);
+
+  // Save immediately on blur
+  const handleNotesBlur = () => {
+    flushPendingSave();
   };
+
+  // Navigation handlers that flush pending saves first
+  const handlePrev = useCallback(() => {
+    flushPendingSave();
+    onPrev();
+  }, [flushPendingSave, onPrev]);
+
+  const handleNext = useCallback(() => {
+    flushPendingSave();
+    onNext();
+  }, [flushPendingSave, onNext]);
 
   if (!evaluation) {
     return (
@@ -202,7 +232,7 @@ export function EvaluationPanel({
         <div className="flex gap-3">
           <Button
             variant="secondary"
-            onClick={onPrev}
+            onClick={handlePrev}
             disabled={!hasPrev}
             className="flex-1"
           >
@@ -210,14 +240,25 @@ export function EvaluationPanel({
           </Button>
           <Button
             variant="primary"
-            onClick={onNext}
+            onClick={handleNext}
             disabled={!hasNext}
             className="flex-1"
           >
             Next →
           </Button>
         </div>
+        {onExportCSV && hasEvaluations && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <Button
+              variant="secondary"
+              onClick={onExportCSV}
+              className="w-full"
+            >
+              Export CSV
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+});
