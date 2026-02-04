@@ -7,6 +7,7 @@ interface UseKeyboardNavigationOptions {
   onNext: () => void;
   onRateTrue?: () => void;
   onRateFalse?: () => void;
+  onFocusNotes?: () => void;
   enabled?: boolean;
 }
 
@@ -18,25 +19,38 @@ interface UseKeyboardNavigationOptions {
  * - ArrowRight / k: Next test case
  * - t / g: Rate as True (Good)
  * - f / b: Rate as False (Bad)
+ * - n: Focus notes textarea
+ * - Escape: Blur active element (return to navigation mode)
  */
 export function useKeyboardNavigation({
   onPrev,
   onNext,
   onRateTrue,
   onRateFalse,
+  onFocusNotes,
   enabled = true,
 }: UseKeyboardNavigationOptions) {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (!enabled) return;
 
-      // Don't trigger when typing in inputs
       const target = event.target as HTMLElement;
-      if (
+      const isInInput =
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
+        target.isContentEditable;
+
+      // Escape always works - blur active element to return to navigation mode
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        return;
+      }
+
+      // Don't trigger other shortcuts when typing in inputs
+      if (isInInput) {
         return;
       }
 
@@ -68,9 +82,15 @@ export function useKeyboardNavigation({
             onRateFalse();
           }
           break;
+        case 'n':
+          if (onFocusNotes) {
+            event.preventDefault();
+            onFocusNotes();
+          }
+          break;
       }
     },
-    [enabled, onPrev, onNext, onRateTrue, onRateFalse]
+    [enabled, onPrev, onNext, onRateTrue, onRateFalse, onFocusNotes]
   );
 
   useEffect(() => {

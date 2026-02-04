@@ -72,12 +72,17 @@ function ReviewContentInner() {
     }
   }, [evaluations, testRunId]);
 
+  const handleFocusNotes = useCallback(() => {
+    evaluationPanelRef.current?.focusNotes();
+  }, []);
+
   // Keyboard navigation
   useKeyboardNavigation({
     onPrev: handlePrev,
     onNext: handleNext,
     onRateTrue: () => handleRate('true'),
     onRateFalse: () => handleRate('false'),
+    onFocusNotes: handleFocusNotes,
     enabled: !isLoading && evaluations.length > 0,
   });
 

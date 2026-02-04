@@ -20,6 +20,7 @@ interface EvaluationPanelProps {
 
 export interface EvaluationPanelHandle {
   flushPendingSave: () => void;
+  focusNotes: () => void;
 }
 
 const RATING_OPTIONS = [
@@ -95,10 +96,16 @@ export const EvaluationPanel = forwardRef<EvaluationPanelHandle, EvaluationPanel
     setIsSaving(false);
   }, [localNotes, evaluation?.notes, onNotesChange]);
 
-  // Expose flush function to parent via ref
+  // Focus the notes textarea
+  const focusNotes = useCallback(() => {
+    textareaRef.current?.focus();
+  }, []);
+
+  // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
     flushPendingSave,
-  }), [flushPendingSave]);
+    focusNotes,
+  }), [flushPendingSave, focusNotes]);
 
   // Save immediately on blur
   const handleNotesBlur = () => {
@@ -222,6 +229,15 @@ export const EvaluationPanel = forwardRef<EvaluationPanelHandle, EvaluationPanel
             <span className="inline-flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 font-mono">F</kbd>
               <span className="mx-1">False</span>
+            </span>
+            <span className="mx-2">|</span>
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 font-mono">N</kbd>
+              <span className="mx-1">notes</span>
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 font-mono">Esc</kbd>
+              <span className="mx-1">blur</span>
             </span>
           </p>
         </section>
