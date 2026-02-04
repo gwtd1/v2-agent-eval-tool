@@ -138,29 +138,31 @@ TDX (Agent Execution) → Agent Eval Tool (Human Review) → Evaluation Reports
 
 ### 8.2 Deferred (V2+)
 
-| ID | Requirement | Reason |
-|----|-------------|--------|
-| D1 | Show conversation traces | Complexity for V1; prompt+response sufficient |
-| D2 | Manual test case creation | V1 uses TDX commands; UI-based creation in V2 |
-| D3 | Historical test run viewing | V1 supports single test run per agent |
-| D4 | Auto-save functionality | Keep V1 simple with manual save |
-| D5 | Response truncation ("Show more") | V1 shows full content |
-| D6 | Session continuity ("Resume") | V1 starts fresh each session |
-| D7 | Export filtering by rating | V1 exports all evaluations |
-| D8 | Remember last selected agent | V1 starts fresh each session |
-| D9 | Complex ground truth formats | V1 supports string/number only |
-| D10 | Text annotation/highlighting | Complexity |
-| D11 | Tagging/labeling system | Requires taxonomy design |
-| D12 | Multi-reviewer collaboration | Multi-user architecture |
-| D13 | LLM-based error clustering | Post-MVP analytics |
-| D14 | Cloud deployment | V1 is local-first |
-| D15 | Pagination for test runs and test cases | Small dataset in V1; unnecessary complexity |
-| D16 | Automatic retry with exponential backoff | V1 uses user-initiated retry button |
-| D17 | Zod schema validation for API requests | V1 uses manual validation with early returns |
-| D18 | Full service layer architecture | V1 keeps simple CRUD in route handlers |
-| D19 | Structured JSON logging for production | V1 uses console logging for development |
-| D20 | Multi-reviewer support (reviewerId field) | V1 is single-user; field removed for simplicity |
-| D21 | "Run Test" button in UI | API: `curl -X POST http://localhost:3000/api/test -H "Content-Type: application/json" -d '{"agentPath": "agents/tdx_default_gregwilliams/fact-checker"}'` |
+| ID  | Requirement                               | Reason                                                                                                                                                   |
+|-----|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| D1  | Show conversation traces                  | Complexity for V1; prompt+response sufficient                                                                                                            |
+| D2  | Manual test case creation                 | V1 uses TDX commands; UI-based creation in V2                                                                                                            |
+| D3  | Historical test run viewing               | V1 supports single test run per agent                                                                                                                    |
+| D4  | Auto-save functionality                   | Keep V1 simple with manual save                                                                                                                          |
+| D5  | Response truncation ("Show more")         | V1 shows full content                                                                                                                                    |
+| D6  | Session continuity ("Resume")             | V1 starts fresh each session                                                                                                                             |
+| D7  | Export filtering by rating                | V1 exports all evaluations                                                                                                                               |
+| D8  | Remember last selected agent              | V1 starts fresh each session                                                                                                                             |
+| D9  | Complex ground truth formats              | V1 supports string/number only                                                                                                                           |
+| D10 | Text annotation/highlighting              | Complexity                                                                                                                                               |
+| D11 | Tagging/labeling system                   | Requires taxonomy design                                                                                                                                 |
+| D12 | Multi-reviewer collaboration              | Multi-user architecture                                                                                                                                  |
+| D13 | LLM-based error clustering                | Post-MVP analytics                                                                                                                                       |
+| D14 | Cloud deployment                          | V1 is local-first                                                                                                                                        |
+| D15 | Pagination for test runs and test cases   | Small dataset in V1; unnecessary complexity                                                                                                              |
+| D16 | Automatic retry with exponential backoff  | V1 uses user-initiated retry button                                                                                                                      |
+| D17 | Zod schema validation for API requests    | V1 uses manual validation with early returns                                                                                                             |
+| D18 | Full service layer architecture           | V1 keeps simple CRUD in route handlers                                                                                                                   |
+| D19 | Structured JSON logging for production    | V1 uses console logging for development                                                                                                                  |
+| D20 | Multi-reviewer support (reviewerId field) | V1 is single-user; field removed for simplicity                                                                                                          |
+| D21 | "Run Test" button in UI                   | API: `curl -X POST http://localhost:3000/api/test -H "Content-Type: application/json" -d '{"agentPath": "agents/tdx_default_gregwilliams/fact-checker"}'` |
+| D22 | Show agent traces                         | review needs to review agent traces                                                                                                                      |
+
 
 ---
 

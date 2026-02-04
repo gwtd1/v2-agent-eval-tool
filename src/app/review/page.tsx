@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense, useEffect, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ThreePanel } from '@/components/layout/ThreePanel';
 import { TestCaseList } from '@/components/panels/TestCaseList';
 import { ConversationView } from '@/components/panels/ConversationView';
 import { EvaluationPanel } from '@/components/panels/EvaluationPanel';
 import { EvaluationProvider, useEvaluation } from '@/context/EvaluationContext';
+import { useKeyboardNavigation } from '@/lib/utils/keyboard';
 
 function ReviewContentInner() {
   const searchParams = useSearchParams();
@@ -35,29 +36,38 @@ function ReviewContentInner() {
 
   const selectedEvaluation = selectedIndex >= 0 ? evaluations[selectedIndex] : null;
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (selectedIndex > 0) {
       selectTestCase(evaluations[selectedIndex - 1].evaluation.testCaseId);
     }
-  };
+  }, [selectedIndex, evaluations, selectTestCase]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (selectedIndex < evaluations.length - 1) {
       selectTestCase(evaluations[selectedIndex + 1].evaluation.testCaseId);
     }
-  };
+  }, [selectedIndex, evaluations, selectTestCase]);
 
-  const handleRate = (rating: 'true' | 'false') => {
+  const handleRate = useCallback((rating: 'true' | 'false') => {
     if (selectedEvaluation) {
       updateRating(selectedEvaluation.evaluation.id, rating);
     }
-  };
+  }, [selectedEvaluation, updateRating]);
 
-  const handleNotesChange = (notes: string) => {
+  const handleNotesChange = useCallback((notes: string) => {
     if (selectedEvaluation) {
       updateNotes(selectedEvaluation.evaluation.id, notes);
     }
-  };
+  }, [selectedEvaluation, updateNotes]);
+
+  // Keyboard navigation
+  useKeyboardNavigation({
+    onPrev: handlePrev,
+    onNext: handleNext,
+    onRateTrue: () => handleRate('true'),
+    onRateFalse: () => handleRate('false'),
+    enabled: !isLoading && evaluations.length > 0,
+  });
 
   if (!testRunId) {
     return (
