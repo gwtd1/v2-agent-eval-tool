@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { TestRun } from '@/lib/types/test-case';
+import { AgentSelector, TestRunner } from '@/components/agent';
 
 export default function Home() {
+  const router = useRouter();
   const [testRuns, setTestRuns] = useState<TestRun[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAgentPath, setSelectedAgentPath] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchTestRuns() {
@@ -28,6 +32,10 @@ export default function Home() {
     fetchTestRuns();
   }, []);
 
+  const handleTestComplete = (testRunId: string) => {
+    router.push(`/review?testRunId=${testRunId}`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200">
@@ -37,9 +45,24 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+        {/* Run New Evaluation Section */}
         <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Test Runs</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Run New Evaluation</h2>
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="space-y-4">
+              <AgentSelector onAgentSelect={setSelectedAgentPath} />
+              <TestRunner
+                agentPath={selectedAgentPath}
+                onComplete={handleTestComplete}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Previous Test Runs Section */}
+        <section>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Previous Test Runs</h2>
 
           {isLoading && (
             <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">

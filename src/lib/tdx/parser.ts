@@ -31,12 +31,17 @@ export function parseAgentListOutput(output: string): ParsedAgent[] {
   try {
     const parsed = JSON.parse(output);
     if (Array.isArray(parsed)) {
-      return parsed.map((agent) => ({
-        id: agent.id || agent.name,
-        name: agent.name,
-        path: agent.path || `agents/${agent.project}/${agent.name}`,
-        project: agent.project || extractProjectFromPath(agent.path),
-      }));
+      return parsed.map((agent) => {
+        // Calculate project first - extract from path if available, otherwise use agent.project or 'default'
+        const project = agent.project || extractProjectFromPath(agent.path) || 'tdx_default_gregwilliams';
+
+        return {
+          id: agent.id || agent.name,
+          name: agent.name,
+          path: agent.path || `agents/${project}/${agent.name}`,
+          project,
+        };
+      });
     }
   } catch {
     // Not JSON, parse as text
@@ -345,7 +350,7 @@ export function parseAgentPath(agentPath: string): { project: string; agent: str
   }
 
   // Just agent name
-  return { project: 'default', agent: agentPath };
+  return { project: 'tdx_default_gregwilliams', agent: agentPath };
 }
 
 /**
@@ -353,7 +358,7 @@ export function parseAgentPath(agentPath: string): { project: string; agent: str
  */
 function extractProjectFromPath(path: string): string {
   const match = path?.match(/agents\/([^/]+)/);
-  return match ? match[1] : 'default';
+  return match ? match[1] : 'tdx_default_gregwilliams';
 }
 
 /**

@@ -16,14 +16,8 @@ interface RadioGroupProps {
   className?: string;
 }
 
-export function RadioGroup({
-  name,
-  options,
-  value,
-  onChange,
-  size = 'lg',
-  className,
-}: RadioGroupProps) {
+export function RadioGroup(props: RadioGroupProps) {
+  const { options, value, onChange, size = 'lg', className } = props;
   return (
     <div className={clsx('flex gap-3', className)} role="radiogroup">
       {options.map((option) => {

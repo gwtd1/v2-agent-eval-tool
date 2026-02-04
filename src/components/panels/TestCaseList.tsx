@@ -70,7 +70,7 @@ export function TestCaseList({ evaluations, selectedId, onSelect }: TestCaseList
 
       {/* Test Case List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredEvaluations.map(({ evaluation, testCase }, index) => {
+        {filteredEvaluations.map(({ evaluation, testCase }) => {
           const isSelected = evaluation.testCaseId === selectedId;
           const badgeVariant = evaluation.rating === null ? 'pending' : evaluation.rating;
           const displayIndex = evaluations.findIndex(
