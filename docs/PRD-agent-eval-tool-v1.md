@@ -136,38 +136,58 @@ TDX (Agent Execution) → Agent Eval Tool (Human Review) → Evaluation Reports
 | F7 | Export to CSV | Enable downstream analysis |
 | F8 | Handle blank ground truth | Support probabilistic prompts |
 
-### 8.2 Deferred (V2+)
+### 8.2 V2-agent-eval-tool
+- Run locally 
+- test with real use cases 
+- TR and Michaels for test cases 
+- setup a md file to look into the schema through TDX for a specific project 
+  - would be a new file in the repo
 
-| ID   | Requirement                                | Reason                                                                                                                                                    |
-|------|--------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| D1   | Show conversation traces                   | Complexity for V1; prompt+response sufficient                                                                                                             |
-| D2   | Manual test case creation                  | V1 uses TDX commands; UI-based creation in V2                                                                                                             |
-| D3   | Historical test run viewing                | V1 supports single test run per agent                                                                                                                     |
-| D4   | Auto-save functionality                    | Keep V1 simple with manual save                                                                                                                           |
-| D5   | Response truncation ("Show more")          | V1 shows full content                                                                                                                                     |
-| D6   | Session continuity ("Resume")              | V1 starts fresh each session                                                                                                                              |
-| D7   | Export filtering by rating                 | V1 exports all evaluations                                                                                                                                |
-| D8   | Remember last selected agent               | V1 starts fresh each session                                                                                                                              |
-| D9   | Complex ground truth formats               | V1 supports string/number only                                                                                                                            |
-| D10  | Text annotation/highlighting               | Complexity                                                                                                                                                |
-| D11  | Tagging/labeling system                    | Requires taxonomy design                                                                                                                                  |
-| D12  | Multi-reviewer collaboration               | Multi-user architecture                                                                                                                                   |
-| D13  | LLM-based error clustering                 | Post-MVP analytics                                                                                                                                        |
-| D14  | Cloud deployment                           | V1 is local-first                                                                                                                                         |
-| D15  | Pagination for test runs and test cases    | Small dataset in V1; unnecessary complexity                                                                                                               |
-| D16  | Automatic retry with exponential backoff   | V1 uses user-initiated retry button                                                                                                                       |
-| D17  | Zod schema validation for API requests     | V1 uses manual validation with early returns                                                                                                              |
-| D18  | Full service layer architecture            | V1 keeps simple CRUD in route handlers                                                                                                                    |
-| D19  | Structured JSON logging for production     | V1 uses console logging for development                                                                                                                   |
-| D20  | Multi-reviewer support (reviewerId field)  | V1 is single-user; field removed for simplicity                                                                                                           |
-| D21  | "Run Test" button in UI                    | API: `curl -X POST http://localhost:3000/api/test -H "Content-Type: application/json" -d '{"agentPath": "agents/tdx_default_gregwilliams/fact-checker"}'` |
-| D22  | Show agent traces                          | review needs to review agent traces                                                                                                                       |
-| D23  | Query the project name from TDX for agents | V1 is hardcoded for TDX project name is tdx_default_gregwilliams and we need to update this for V2 to query tdx |
-| D24  | Pagination for Previous Test Runs          | The Previous Test Runs need a scroll or pagination on the into screen |
+| ID | Requirement                                           | Reason                                                                                                                  |
+|----|-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| D1 | Show conversation traces                              | Use API call to conversation or Look into using TDX to chat with agent and refactor to return traces                    |
+| D2 | LLM as a judge output                                 | Currently only see the agent output                                                                                     |
+| D3 | LLM as a judge results click-to-view                  | Currenly they do not appear at all                                                                                      |
+| D4 | Export filtering by rating                            | V1 exports all evaluations, filter for FALSE test cases                                                                 |
+| D5 | hacky input where claude code converts csv to yml file | Create a TDX command to upload csv to add test cases to eval.yaml; Currently only TR and Honda have ground truth in csv |
+| D6 | Query the project name from TDX for agents | V1 is hardcoded for TDX project name is tdx_default_gregwilliams and we need to update this for V2 to query tdx         |
+
+
+# UI 
+| ID | Requirement                                           | Reason                                                                       |
+|----|-------------------------------------------------------|------------------------------------------------------------------------------|
+| D3 | LLM as a judge results click-to-view                  | Dependency on D2; Currently they do not appear at all                        |
+| D4 | Export filtering by rating                            | V1 exports all evaluations, filter for FALSE test cases                      |
+
+# TDX 
+| ID | Requirement                                           | Reason                                                                                                                  |
+|----|-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| D2 | LLM as a judge output                                 | Currently only see the agent output                                                                                     |
+| D5 | hacky input where claude code converts csv to yml file | Create a TDX command to upload csv to add test cases to eval.yaml; Currently only TR and Honda have ground truth in csv |
+
+
+# UI + BE 
+| ID | Requirement                                           | Reason                                                                                                           |
+|----|-------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| D1 | Show conversation traces                               | Use API call to conversation or Look into using TDX to chat with agent and refactor to return traces             |
+| D6 | Query the project name from TDX for agents | V1 is hardcoded for TDX project name is tdx_default_gregwilliams and we need to update this for V2 to query tdx  |
 
  
                                                                                                                                                        
-
+### 8.3 V3-agent-eval-tool
+| ID  | Requirement                               | Notes                                                                                         |
+|-----|-------------------------------------------|-----------------------------------------------------------------------------------------------|
+| D7  | Manual test case creation                 | test cases can be written from the UI                                                         |
+| D8  | Cloud deployment                          | app is hosted in the cloud so anyone can use the tool with an api key                         |
+| D9  | Response truncation ("Show more")         | if agent test cases or responses are too long we can use "show more" button to hide text      |
+| D10 | upload input  from a doc                  | click a button to upload testcases and ground truth; Currently TR and Honda have ground truth |
+| D11 | LLM-based error clustering                | Post-MVP analytics to detect common issues with agents from eval notes                        |
+| D12 | Tagging/labeling system                   | Requires taxonomy design                                                                      |
+| D13 | Zod schema validation for API requests    | Complex API functionality - V1 uses manual validation with early returns                      |
+| D14 | Full service API layer architecture       | V1 keeps simple CRUD in route handlers                                                        |
+| D15 | Structured JSON logging for production    | V1 uses console logging for development                                                       |
+| D16 | Multi-reviewer support (reviewerId field) | V1 is single-user; field removed for simplicity                                               |
+| D17 | Pagination for Previous Test Runs         | The Previous Test Runs need a scroll or pagination on the into screen                         |
 
 
 ---
