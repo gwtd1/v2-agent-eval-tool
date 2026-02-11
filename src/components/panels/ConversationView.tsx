@@ -1,6 +1,7 @@
 'use client';
 
 import { TestCase } from '@/lib/types/test-case';
+import { LlmJudgeResults } from './LlmJudgeResults';
 
 interface ConversationViewProps {
   testCase: TestCase | null;
@@ -158,6 +159,11 @@ export function ConversationView({ testCase }: ConversationViewProps) {
               <p className="text-gray-500 italic">No response recorded</p>
             </div>
           )}
+        </section>
+
+        {/* LLM Evaluation Section */}
+        <section>
+          <LlmJudgeResults result={testCase.llmJudgeResult} testCaseId={testCase.id} />
         </section>
 
         {/* Ground Truth Section - placed at bottom to require scrolling (per PRD) */}

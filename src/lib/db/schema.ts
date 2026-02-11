@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS test_cases (
   ground_truth TEXT,
   agent_response TEXT,
   traces TEXT,
+  llm_judge_result TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (test_run_id) REFERENCES test_runs(id) ON DELETE CASCADE
 );

@@ -5,9 +5,12 @@ import {
   createTestCase,
   createEvaluation,
   updateTestRunStatus,
+  updateTestCaseLlmJudgeResult,
 } from '@/lib/db/queries';
 import { executeTdxAgentTest } from '@/lib/tdx/executor';
 import { extractTestCasesFromOutput, parseAgentPath, readTestYamlForAgent } from '@/lib/tdx/parser';
+import { evaluateWithLlm } from '@/lib/llm/evaluator';
+import type { TestCase } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
   console.log('[API] POST /api/test - Starting test execution');
@@ -80,9 +83,13 @@ export async function POST(request: NextRequest) {
     const testYamlData = readTestYamlForAgent(agentPath);
     console.log(`[API] Read ${testYamlData.size} entries from test.yml`);
 
+    // Store test name mapping for LLM evaluation
+    const testNameMap = new Map<string, string>();
+
     const createdTestCases = withTransaction(() => {
-      const testCases = [];
-      for (const pc of parsedCases) {
+      const testCases: TestCase[] = [];
+      for (let i = 0; i < parsedCases.length; i++) {
+        const pc = parsedCases[i];
         // Use user_input from test.yml as prompt, criteria as agentResponse
         const yamlData = testYamlData.get(pc.name);
         const prompt = yamlData?.userInput || pc.prompt;
@@ -93,6 +100,7 @@ export async function POST(request: NextRequest) {
           groundTruth: pc.groundTruth,
           agentResponse,
           traces: null,
+          llmJudgeResult: null,
         });
 
         // Create initial evaluation (unrated)
@@ -103,9 +111,54 @@ export async function POST(request: NextRequest) {
         });
 
         testCases.push(testCase);
+        testNameMap.set(testCase.id, pc.name);
       }
       return testCases;
     });
+
+    // LLM-as-a-Judge evaluation
+    const apiKey = process.env.TD_API_KEY;
+    if (apiKey) {
+      console.log('[API] Starting LLM evaluation for test cases');
+      const totalTests = createdTestCases.length;
+
+      for (let i = 0; i < createdTestCases.length; i++) {
+        const testCase = createdTestCases[i];
+        const testNumber = i + 1;
+        const testName = testNameMap.get(testCase.id) || `Test ${testNumber}`;
+
+        console.log(`[API] Evaluating test case ${testNumber}/${totalTests}: ${testName}`);
+
+        try {
+          // Build conversation history
+          const conversationHistory = `User: ${testCase.prompt}\n\nAssistant: ${testCase.agentResponse || '[No response]'}`;
+
+          // Use ground truth as criteria
+          const criteria = testCase.groundTruth || 'Evaluate if the response is helpful, accurate, and addresses the user query appropriately.';
+
+          const llmResult = await evaluateWithLlm(
+            {
+              conversationHistory,
+              criteria,
+              testName,
+              testNumber,
+              totalTests,
+              prompt: testCase.prompt,
+            },
+            apiKey
+          );
+
+          // Update test case with LLM result
+          updateTestCaseLlmJudgeResult(testCase.id, llmResult);
+          console.log(`[API] LLM evaluation complete for ${testName}: ${llmResult.verdict}`);
+        } catch (error) {
+          console.error(`[API] LLM evaluation failed for ${testName}:`, error);
+          // Continue with other test cases even if one fails
+        }
+      }
+    } else {
+      console.log('[API] Skipping LLM evaluation - TD_API_KEY not set');
+    }
 
     // Update test run status
     updateTestRunStatus(testRun.id, 'completed', result.stdout);

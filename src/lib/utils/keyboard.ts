@@ -8,6 +8,7 @@ interface UseKeyboardNavigationOptions {
   onRateTrue?: () => void;
   onRateFalse?: () => void;
   onFocusNotes?: () => void;
+  onToggleLlmResults?: () => void;
   enabled?: boolean;
 }
 
@@ -20,6 +21,7 @@ interface UseKeyboardNavigationOptions {
  * - t / g: Rate as True (Good)
  * - f / b: Rate as False (Bad)
  * - n: Focus notes textarea
+ * - l: Toggle LLM evaluation visibility
  * - Escape: Blur active element (return to navigation mode)
  */
 export function useKeyboardNavigation({
@@ -28,6 +30,7 @@ export function useKeyboardNavigation({
   onRateTrue,
   onRateFalse,
   onFocusNotes,
+  onToggleLlmResults,
   enabled = true,
 }: UseKeyboardNavigationOptions) {
   const handleKeyDown = useCallback(
@@ -88,9 +91,15 @@ export function useKeyboardNavigation({
             onFocusNotes();
           }
           break;
+        case 'l':
+          if (onToggleLlmResults) {
+            event.preventDefault();
+            onToggleLlmResults();
+          }
+          break;
       }
     },
-    [enabled, onPrev, onNext, onRateTrue, onRateFalse, onFocusNotes]
+    [enabled, onPrev, onNext, onRateTrue, onRateFalse, onFocusNotes, onToggleLlmResults]
   );
 
   useEffect(() => {

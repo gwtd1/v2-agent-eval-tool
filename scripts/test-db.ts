@@ -36,7 +36,8 @@ const testCase = createTestCase({
   prompt: 'What is 2 + 2?',
   groundTruth: '4',
   agentResponse: null,
-  traces: null
+  traces: null,
+  llmJudgeResult: null
 });
 console.log('\n✓ Created test case:', testCase.id);
 

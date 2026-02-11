@@ -24,6 +24,7 @@ function ReviewContentInner() {
     selectTestCase,
     updateRating,
     updateNotes,
+    toggleLlmResultsVisibility,
   } = useEvaluation();
 
   useEffect(() => {
@@ -76,6 +77,12 @@ function ReviewContentInner() {
     evaluationPanelRef.current?.focusNotes();
   }, []);
 
+  const handleToggleLlmResults = useCallback(() => {
+    if (selectedTestCaseId) {
+      toggleLlmResultsVisibility(selectedTestCaseId);
+    }
+  }, [selectedTestCaseId, toggleLlmResultsVisibility]);
+
   // Keyboard navigation
   useKeyboardNavigation({
     onPrev: handlePrev,
@@ -83,6 +90,7 @@ function ReviewContentInner() {
     onRateTrue: () => handleRate('true'),
     onRateFalse: () => handleRate('false'),
     onFocusNotes: handleFocusNotes,
+    onToggleLlmResults: handleToggleLlmResults,
     enabled: !isLoading && evaluations.length > 0,
   });
 

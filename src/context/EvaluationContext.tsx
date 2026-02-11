@@ -15,6 +15,7 @@ interface EvaluationContextState {
   selectedTestCaseId: string | null;
   isLoading: boolean;
   error: string | null;
+  llmResultsVisibility: Record<string, boolean>;
 }
 
 interface EvaluationContextActions {
@@ -22,6 +23,7 @@ interface EvaluationContextActions {
   selectTestCase: (testCaseId: string) => void;
   updateRating: (evaluationId: string, rating: 'true' | 'false') => Promise<void>;
   updateNotes: (evaluationId: string, notes: string) => Promise<void>;
+  toggleLlmResultsVisibility: (testCaseId: string) => void;
 }
 
 type EvaluationContextValue = EvaluationContextState & EvaluationContextActions;
@@ -47,6 +49,7 @@ export function EvaluationProvider({ children }: EvaluationProviderProps) {
     selectedTestCaseId: null,
     isLoading: false,
     error: null,
+    llmResultsVisibility: {},
   });
 
   const setTestRun = useCallback(async (testRunId: string) => {
@@ -132,12 +135,23 @@ export function EvaluationProvider({ children }: EvaluationProviderProps) {
     }
   }, []);
 
+  const toggleLlmResultsVisibility = useCallback((testCaseId: string) => {
+    setState((prev) => ({
+      ...prev,
+      llmResultsVisibility: {
+        ...prev.llmResultsVisibility,
+        [testCaseId]: !prev.llmResultsVisibility[testCaseId],
+      },
+    }));
+  }, []);
+
   const value: EvaluationContextValue = {
     ...state,
     setTestRun,
     selectTestCase,
     updateRating,
     updateNotes,
+    toggleLlmResultsVisibility,
   };
 
   return (

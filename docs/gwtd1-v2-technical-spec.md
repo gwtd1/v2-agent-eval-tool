@@ -2,10 +2,18 @@
 
 ## Document Overview
 
-This technical specification provides detailed implementation guidance for the three V2 features assigned to gwtd1:
+This technical specification provides detailed implementation guidance for the V2 features assigned to gwtd1:
+
+**Core Features:**
 - **D2**: LLM as a Judge Results in Evaluation UI Frame
 - **D3**: Make LLM as a Judge Results Click-to-View
 - **D6**: Query TDX Project Name/Agent After User Provides API Key
+
+**New Features (added 2026-02-11):**
+- **D18**: Change Rating to Pass/Fail with Thumbs Up/Down Buttons
+- **D19**: Display Complete Agent Response in Evaluation
+- **D20**: Show TDX Execution Logs During Test Runs
+- **D21**: Fix Evaluation Results Storage and Display (Bug)
 
 **Reference Sources:**
 - TDX CLI Documentation: https://tdx.treasuredata.com/commands/agent.html
@@ -95,13 +103,23 @@ Display LLM-as-a-judge evaluation results in the UI below the agent response.
 
 The agent-eval-new project implements LLM-as-a-judge using a **dedicated evaluator agent**. We will adapt this pattern for the web UI.
 
-#### Option A: Use TDX Agent Test Output (Simpler)
+#### Option A: Use TDX Agent Test Output (Parser-Based)
 Parse existing `tdx agent test` output which already includes pass/fail verdicts from the built-in judge.
+- **Reasoning Quality**: Basic (e.g., "The agent's response contains 'True'...")
 
-#### Option B: Call Evaluator Agent Directly (Richer Data)
-Call the LLM API with an evaluator agent to get detailed reasoning, following agent-eval-new patterns.
+#### Option B: Call Evaluator Agent Directly (Rich Evaluation) ✅ SELECTED
+Call the LLM API with a dedicated evaluator agent to get detailed reasoning, following agent-eval-new patterns.
+- **Reasoning Quality**: Rich (e.g., "The agent explicitly responded with 'True' and provided accurate historical details...")
+- **Evaluator Agent ID**: `019ae82f-b843-79f5-95c6-c7968262b2c2` (from agent-eval-new)
 
-**Recommendation**: Start with Option A, enhance with Option B in future iterations.
+**Implementation: Option B - Evaluator Agent Direct Call**
+
+| Aspect | Option A (TDX CLI Output) | Option B (Evaluator Agent) ✅ |
+|--------|---------------------------|------------------------------|
+| Data Source | Parse `tdx agent test` CLI output | Call LLM API with dedicated evaluator agent |
+| Reasoning Quality | Basic | Rich, contextual analysis |
+| Implementation | Parser-based extraction | API client + evaluator agent integration |
+| Reference | TDX CLI built-in judge | agent-eval-new evaluator |
 
 ---
 
@@ -109,185 +127,174 @@ Call the LLM API with an evaluator agent to get detailed reasoning, following ag
 
 #### 1. Data Model Updates
 
-**New TypeScript Interface** (`src/lib/types/llmJudge.ts`):
+**New TypeScript Interface** (`src/lib/llm/types.ts`):
+
+The data model is simplified to match the 6 required UI output fields:
+
 ```typescript
 interface LlmJudgeResult {
-  verdict: 'pass' | 'fail' | 'partial' | 'error';
-  score: number;              // 0.0 - 1.0
-  reasoning: {
-    plan: string;             // Evaluator's approach
-    thinking: string;         // Step-by-step analysis
-    conclusion: string;       // Final determination
-  };
-  criteriaResults: CriteriaResult[];
-  evaluatorModel: string;     // e.g., "claude-sonnet-4-5"
-  evaluatedAt: string;        // ISO timestamp
-}
+  // Core evaluation output
+  verdict: 'pass' | 'fail';
+  reasoning: string;           // Rich evaluation text from evaluator agent
 
-interface CriteriaResult {
-  criteriaName: string;
-  criteriaText: string;
-  passed: boolean;
-  score: number;
-  explanation: string;
+  // Conversation context
+  conversationUrl: string;     // Chat link for click-to-view
+
+  // Test identification
+  testNumber: number;          // Current test index (1-based)
+  totalTests: number;          // Total tests in run
+  testName: string;            // Test case name from test.yml
+  prompt: string;              // Test case prompt/user input
+
+  // Metadata
+  evaluatedAt: string;         // ISO timestamp
+  evaluatorAgentId?: string;   // Agent ID used for evaluation
 }
 ```
 
-**Reference from agent-eval-new** (`/evaluator_lib/models.py`):
-```python
-@dataclass
-class ValidationResult:
-    type: str
-    criteria_name: str
-    passed: bool
-    score: float
-    plan: str
-    thinking: str
-    reason: str
-```
+**Required UI Output Fields:**
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `verdict` | `'pass' \| 'fail'` | Pass/fail status | `'pass'` |
+| `reasoning` | `string` | Rich evaluation text | `"✓ PASS: The agent explicitly responded with 'True' and provided accurate historical details..."` |
+| `conversationUrl` | `string` | Link to chat conversation | `"https://console-next.us01.treasuredata.com/app/af/..."` |
+| `testNumber` / `totalTests` | `number` | Position indicator | `1` / `5` → "1/5" |
+| `testName` | `string` | Name of the test case | `"Check factual statement accuracy"` |
+| `prompt` | `string` | Test case prompt/user input | `"Is it true that the company was founded in 1998?"` |
 
 #### 2. Database Schema Update
 
 **Migration for test_cases table**:
 ```sql
--- Option 1: Add dedicated column
+-- Add dedicated column for LLM judge result
 ALTER TABLE test_cases ADD COLUMN llm_judge_result TEXT;
-
--- Option 2: Use existing traces column (already exists, unused)
--- Store as JSON in traces field
 ```
 
-**JSON Structure in Database**:
+**JSON Structure in Database** (matches `LlmJudgeResult` interface):
 ```json
 {
   "verdict": "pass",
-  "score": 1.0,
-  "reasoning": {
-    "plan": "I will verify the response against the ground truth criteria...",
-    "thinking": "The agent correctly identified...",
-    "conclusion": "The response meets all specified criteria."
-  },
-  "criteriaResults": [
-    {
-      "criteriaName": "accuracy",
-      "criteriaText": "Response must match expected output format",
-      "passed": true,
-      "score": 1.0,
-      "explanation": "Response format matches expected structure."
-    }
-  ],
-  "evaluatorModel": "claude-sonnet-4-5",
-  "evaluatedAt": "2026-02-10T15:30:00Z"
+  "reasoning": "✓ PASS: The agent explicitly responded with 'True' and provided accurate historical details about the founding of the organization, correctly identifying the establishment date and key founders.",
+  "conversationUrl": "https://console-next.us01.treasuredata.com/app/af/chats/019ae82f-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "testNumber": 1,
+  "totalTests": 5,
+  "testName": "Check factual statement accuracy",
+  "prompt": "Is it true that the company was founded in 1998?",
+  "evaluatedAt": "2026-02-10T15:30:00Z",
+  "evaluatorAgentId": "019ae82f-b843-79f5-95c6-c7968262b2c2"
 }
 ```
 
-#### 3. TDX Integration Enhancement
+#### 3. API Integration (Option B - Evaluator Agent)
 
-**Approach A: Parse TDX Test Output**
+**Evaluator Agent Configuration:**
+- **Agent ID**: `019ae82f-b843-79f5-95c6-c7968262b2c2`
+- **Source**: agent-eval-new project
 
-The current `tdx agent test` command returns pass/fail status. Enhance parsing in `src/lib/tdx/parser.ts`:
+**API Endpoints (LLM API):**
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/chats` | POST | Create new chat session with evaluator agent |
+| `/api/chats/{id}/continue` | POST | Send evaluation prompt with conversation history |
+| `/api/chats/{id}/history` | GET | Retrieve evaluation response |
 
+**New File: `src/lib/llm/evaluator.ts`**
 ```typescript
-// Current structure from test.yml
-interface TestYamlCase {
-  name: string;
-  user_input: string;
-  criteria: string;          // Evaluation criteria text
-  expected_output?: string;  // Optional ground truth
-}
-
-// Enhanced parsing to extract judge results
-function extractLlmJudgeResult(
-  testOutput: string,
-  testYamlCase: TestYamlCase
-): LlmJudgeResult {
-  // Parse TDX test output for:
-  // - Pass/fail verdict
-  // - Criteria matching
-  // - Any reasoning provided
-}
-```
-
-**Approach B: Direct Evaluator Call**
-
-Create new API client for LLM evaluation following agent-eval-new patterns:
-
-**New file: `src/lib/llm/evaluator.ts`**
-```typescript
-const EVALUATOR_AGENT_ID = '019ae82f-b843-79f5-95c6-c7968262b2c2'; // From agent-eval-new
-const DEV_API_URL = 'https://llm-api-development.us01.treasuredata.com/api';
+const EVALUATOR_AGENT_ID = '019ae82f-b843-79f5-95c6-c7968262b2c2';
 
 interface EvaluatorInput {
-  conversationHistory: string;  // Formatted chat history
-  criteria: string;             // Evaluation criteria
-  context?: Record<string, string>;  // Additional context variables
+  conversationHistory: string;  // Formatted agent chat history
+  criteria: string;             // Evaluation criteria from test.yml
+  testName: string;             // Test case name
+}
+
+interface EvaluatorOutput {
+  verdict: 'pass' | 'fail';
+  reasoning: string;            // Rich evaluation text
 }
 
 async function evaluateWithLlm(
   input: EvaluatorInput,
-  apiKey: string
-): Promise<LlmJudgeResult> {
+  apiKey: string,
+  environment: string
+): Promise<EvaluatorOutput> {
   // 1. Create chat with evaluator agent
+  const chatSession = await createChat(EVALUATOR_AGENT_ID, apiKey, environment);
+
   // 2. Send formatted prompt with conversation + criteria
-  // 3. Parse JSON response
+  const prompt = formatEvaluationPrompt(input);
+  await continueChat(chatSession.id, prompt, apiKey, environment);
+
+  // 3. Retrieve and parse JSON response
+  const history = await getChatHistory(chatSession.id, apiKey, environment);
+  const lastMessage = history.messages[history.messages.length - 1];
+
   // 4. Return structured result
+  return parseEvaluatorResponse(lastMessage.content);
 }
 ```
 
-**Prompt Template** (from agent-eval-new `/evaluator_lib/evaluation/criteria.py`):
+#### 4. Evaluator Prompt Template
+
+**File: `src/lib/llm/prompts.ts`** (adapted from agent-eval-new):
+
 ```
 <conversation_history>
-{formatted_history}
+{formatted_agent_conversation}
 </conversation_history>
 
+<test_name>
+{test_name}
+</test_name>
+
 <criteria>
-{criteria_text}
+{evaluation_criteria}
 </criteria>
 
-Rubric: Boolean judgement: Either 1 for perfectly follows criteria,
-or 0 for does not follow criteria.
+Evaluate the agent's response against the criteria above.
 
-Return your evaluation as JSON:
+Provide your assessment in the following JSON format:
 {
-  "plan": "your evaluation approach",
-  "thinking": "step-by-step analysis",
-  "score": 0 or 1,
-  "reason": "final determination"
+  "verdict": "pass" or "fail",
+  "reasoning": "Detailed explanation of why the response passes or fails the criteria. Include specific evidence from the conversation."
 }
 ```
 
-#### 4. API Route Updates
+**Example Output:**
+```json
+{
+  "verdict": "pass",
+  "reasoning": "✓ PASS: The agent explicitly responded with 'True' and provided accurate historical details about the founding of the organization, correctly identifying the establishment date as 1998 and the key founders as Dr. Smith and Dr. Johnson."
+}
+```
+
+#### 5. API Route Updates
 
 **Modify `GET /api/evaluations/[id]`** (`src/app/api/evaluations/[id]/route.ts`):
 
 ```typescript
-// Current response
-{
-  evaluation: { id, rating, notes, ... },
-  testCase: { prompt, agentResponse, groundTruth, ... }
-}
-
-// Enhanced response
+// Enhanced response with LlmJudgeResult
 {
   evaluation: { id, rating, notes, ... },
   testCase: { prompt, agentResponse, groundTruth, ... },
   llmJudgeResult: {
     verdict: 'pass',
-    score: 1.0,
-    reasoning: { ... },
-    criteriaResults: [ ... ]
+    reasoning: '✓ PASS: The agent explicitly responded...',
+    conversationUrl: 'https://console-next.us01.treasuredata.com/app/af/...',
+    testNumber: 1,
+    totalTests: 5,
+    testName: 'Check factual statement accuracy',
+    evaluatedAt: '2026-02-10T15:30:00Z',
+    evaluatorAgentId: '019ae82f-b843-79f5-95c6-c7968262b2c2'
   }
 }
 ```
 
-**New endpoint for on-demand evaluation**:
+**Modify `POST /api/test/route.ts`** - Integrate evaluator call after agent test:
+- After running `tdx agent test`, call evaluator agent for each test case
+- Store both agent response and LLM judge result
 
-`POST /api/evaluations/[id]/llm-judge`
-- Triggers LLM evaluation for a specific test case
-- Useful for re-evaluation or cases without initial judge result
-- Stores result in database
-
-#### 5. UI Component Implementation
+#### 6. UI Component Implementation
 
 **New component: `src/components/panels/LlmJudgeResults.tsx`**
 
@@ -295,64 +302,114 @@ Return your evaluation as JSON:
 interface LlmJudgeResultsProps {
   result: LlmJudgeResult | null;
   isLoading?: boolean;
-  onRequestEvaluation?: () => void;
 }
+```
 
-// Visual structure:
-// ┌─────────────────────────────────────┐
-// │ 🤖 LLM Evaluation                   │
-// ├─────────────────────────────────────┤
-// │ Verdict: ✅ PASS (Score: 1.0)       │
-// ├─────────────────────────────────────┤
-// │ Reasoning:                          │
-// │ "The agent correctly identified..." │
-// ├─────────────────────────────────────┤
-// │ Criteria Results:                   │
-// │ ✅ accuracy (1.0)                   │
-// │ ✅ format (1.0)                     │
-// └─────────────────────────────────────┘
+**UI Wireframe** (matching required output fields):
+
+```
+┌─────────────────────────────────────────────────────┐
+│ 🤖 LLM Evaluation                    Test 1/5      │
+├─────────────────────────────────────────────────────┤
+│ Test Name: Check factual statement accuracy         │
+├─────────────────────────────────────────────────────┤
+│ Prompt:                                             │
+│ "Is it true that the company was founded in 1998?" │
+├─────────────────────────────────────────────────────┤
+│ Verdict: ✓ PASS                                     │
+├─────────────────────────────────────────────────────┤
+│ Reasoning:                                          │
+│ The agent explicitly responded with "True" and      │
+│ provided accurate historical details about the      │
+│ founding of the organization, correctly identifying │
+│ the establishment date and key founders...          │
+├─────────────────────────────────────────────────────┤
+│ 🔗 View Conversation                                │
+└─────────────────────────────────────────────────────┘
+```
+
+**Component Structure:**
+
+```typescript
+function LlmJudgeResults({ result, isLoading }: LlmJudgeResultsProps) {
+  if (isLoading) return <LoadingSpinner />;
+  if (!result) return <EmptyState message="No LLM evaluation available" />;
+
+  return (
+    <div className="llm-judge-panel">
+      {/* Header with test number */}
+      <Header>
+        <span>🤖 LLM Evaluation</span>
+        <span>Test {result.testNumber}/{result.totalTests}</span>
+      </Header>
+
+      {/* Test name */}
+      <Section label="Test Name">{result.testName}</Section>
+
+      {/* Test prompt */}
+      <Section label="Prompt">{result.prompt}</Section>
+
+      {/* Verdict badge */}
+      <Section label="Verdict">
+        <VerdictBadge verdict={result.verdict} />
+      </Section>
+
+      {/* Rich reasoning text */}
+      <Section label="Reasoning">
+        <ReasoningText>{result.reasoning}</ReasoningText>
+      </Section>
+
+      {/* Clickable conversation link */}
+      <ConversationLink href={result.conversationUrl} />
+    </div>
+  );
+}
 ```
 
 **Integration in ConversationView.tsx**:
 
 ```typescript
-// Current layout:
-// - Prompt section
-// - Agent Response section
-// - Ground Truth section
-
-// New layout:
-// - Prompt section
-// - Agent Response section
-// - LLM Judge Results section (NEW)
-// - Ground Truth section
+// New layout order:
+// 1. Prompt section
+// 2. Agent Response section
+// 3. LLM Judge Results section (NEW)
+// 4. Ground Truth section
 ```
 
-#### 6. Data Flow Diagram
+#### 7. Data Flow Diagram
+
+**Test Execution Flow (Option B):**
 
 ```
-Test Execution (existing):
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│ POST /test  │────▶│ TDX agent   │────▶│ Parse       │
-│             │     │ test        │     │ output      │
-└─────────────┘     └─────────────┘     └──────┬──────┘
-                                               │
-                                               ▼
-                                        ┌─────────────┐
-                                        │ Extract LLM │
-                                        │ judge data  │
-                                        └──────┬──────┘
-                                               │
-                                               ▼
-                                        ┌─────────────┐
-                                        │ Store in    │
-                                        │ test_cases  │
-                                        └─────────────┘
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ POST /test   │────▶│ TDX agent    │────▶│ Get agent    │
+│ (run tests)  │     │ test         │     │ response     │
+└──────────────┘     └──────────────┘     └──────┬───────┘
+                                                  │
+                     ┌────────────────────────────┘
+                     ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Create chat  │────▶│ Send eval    │────▶│ Parse JSON   │
+│ with         │     │ prompt +     │     │ response     │
+│ evaluator    │     │ history      │     │              │
+└──────────────┘     └──────────────┘     └──────┬───────┘
+                                                  │
+                     ┌────────────────────────────┘
+                     ▼
+┌──────────────┐     ┌──────────────┐
+│ Store in     │────▶│ Return to    │
+│ test_cases   │     │ UI           │
+│ table        │     │              │
+└──────────────┘     └──────────────┘
+```
 
-UI Display (new):
+**UI Display Flow:**
+
+```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │ GET         │────▶│ Query DB    │────▶│ Return with │
-│ /evaluation │     │             │     │ llmJudge    │
+│ /evaluation │     │ (includes   │     │ llmJudge    │
+│             │     │ llm_judge)  │     │ result      │
 └─────────────┘     └─────────────┘     └──────┬──────┘
                                                │
                                                ▼
@@ -777,18 +834,557 @@ Test Execution:
 
 ---
 
+## Feature D18: Change Rating to Pass/Fail with Thumbs Up/Down Buttons
+
+### Objective
+Replace numeric/star rating system with binary Pass/Fail evaluation using intuitive thumbs up/down icons for manual evaluations.
+
+### Technical Approach
+
+Refactor the rating component to use a binary Pass/Fail system with thumbs up/down buttons instead of the current rating approach.
+
+---
+
+### Implementation Details
+
+#### 1. Data Model Updates
+
+**Update Rating Type** (`src/lib/types/index.ts`):
+
+```typescript
+// Current (to be replaced)
+rating: number | null;  // e.g., 1-5 scale
+
+// New
+rating: 'pass' | 'fail' | null;  // Binary rating
+```
+
+**Database Migration**:
+```sql
+-- Convert existing numeric ratings to pass/fail
+-- Assuming positive ratings (e.g., >= 3) = pass, else fail
+UPDATE evaluations
+SET rating = CASE
+  WHEN rating >= 3 THEN 'pass'
+  WHEN rating IS NOT NULL THEN 'fail'
+  ELSE NULL
+END;
+```
+
+#### 2. UI Component Updates
+
+**Update Rating Component** (`src/components/RatingButtons.tsx` or equivalent):
+
+```typescript
+interface RatingButtonsProps {
+  value: 'pass' | 'fail' | null;
+  onChange: (rating: 'pass' | 'fail') => void;
+  disabled?: boolean;
+}
+
+function RatingButtons({ value, onChange, disabled }: RatingButtonsProps) {
+  return (
+    <div className="flex gap-4">
+      <button
+        onClick={() => onChange('pass')}
+        className={`rating-btn ${value === 'pass' ? 'active-pass' : ''}`}
+        disabled={disabled}
+        aria-label="Pass"
+      >
+        <ThumbsUpIcon className={value === 'pass' ? 'text-green-500' : 'text-gray-400'} />
+        <span>Pass</span>
+      </button>
+      <button
+        onClick={() => onChange('fail')}
+        className={`rating-btn ${value === 'fail' ? 'active-fail' : ''}`}
+        disabled={disabled}
+        aria-label="Fail"
+      >
+        <ThumbsDownIcon className={value === 'fail' ? 'text-red-500' : 'text-gray-400'} />
+        <span>Fail</span>
+      </button>
+    </div>
+  );
+}
+```
+
+**UI Wireframe**:
+```
+┌─────────────────────────────────────┐
+│ Manual Evaluation                   │
+├─────────────────────────────────────┤
+│                                     │
+│   [ 👍 Pass ]      [ 👎 Fail ]      │
+│                                     │
+│ Notes: [________________________]   │
+│        [________________________]   │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+#### 3. Keyboard Shortcuts
+
+**Update keyboard shortcuts**:
+- Keep `T` for Pass (True/Thumbs up)
+- Keep `F` for Fail (False/Thumbs down)
+
+#### 4. API Updates
+
+**Update `PUT /api/evaluations/[id]`**:
+```typescript
+// Request body
+{
+  rating: 'pass' | 'fail';
+  notes?: string;
+}
+
+// Validation
+if (!['pass', 'fail'].includes(rating)) {
+  return NextResponse.json({ error: 'Invalid rating' }, { status: 400 });
+}
+```
+
+### Key Files to Modify
+- `src/lib/types/index.ts` - Update rating type definition
+- `src/components/panels/RatingPanel.tsx` or equivalent - Replace rating UI
+- `src/app/api/evaluations/[id]/route.ts` - Update validation
+- `src/lib/db/schema.ts` - Migration for rating column
+
+### Acceptance Criteria
+- Rating displays as thumbs up (Pass) and thumbs down (Fail) buttons
+- Visual feedback when a rating is selected (green for pass, red for fail)
+- Keyboard shortcuts T/F continue to work
+- Existing evaluations are migrated to new format
+
+---
+
+## Feature D19: Display Complete Agent Response in Evaluation
+
+### Objective
+Ensure the agent response section returns and displays the complete response from the agent without truncation.
+
+### Technical Approach
+
+Investigate and fix any truncation occurring in the data flow from TDX execution through storage to UI rendering.
+
+---
+
+### Implementation Details
+
+#### 1. Data Flow Analysis
+
+**Potential Truncation Points:**
+1. TDX CLI output capture (child_process buffer limits)
+2. Database column size limits
+3. API response size limits
+4. Frontend rendering truncation
+
+#### 2. TDX Executor Updates
+
+**Check `src/lib/tdx/executor.ts`**:
+
+```typescript
+// Current: May have buffer limits
+const { stdout, stderr } = await execAsync(command);
+
+// Fix: Increase buffer size and capture full output
+const { stdout, stderr } = await execAsync(command, {
+  maxBuffer: 1024 * 1024 * 10, // 10MB buffer
+  encoding: 'utf8',
+});
+```
+
+#### 3. Database Schema Verification
+
+**Verify `test_cases.agent_response` column**:
+```sql
+-- Ensure TEXT type (not VARCHAR with limit)
+-- SQLite TEXT can store up to 2^31-1 bytes
+ALTER TABLE test_cases MODIFY agent_response TEXT;
+```
+
+#### 4. API Response Handling
+
+**Update response serialization**:
+```typescript
+// Ensure no truncation in JSON response
+return NextResponse.json({
+  testCase: {
+    ...testCase,
+    agentResponse: testCase.agent_response, // Full content
+  }
+});
+```
+
+#### 5. Frontend Display
+
+**Update `ConversationView.tsx`**:
+```typescript
+// Current: May truncate long content
+<div className="agent-response">{agentResponse}</div>
+
+// Fix: Allow scrollable full content
+<div className="agent-response overflow-auto max-h-96">
+  <pre className="whitespace-pre-wrap">{agentResponse}</pre>
+</div>
+```
+
+### Key Files to Modify
+- `src/lib/tdx/executor.ts` - Increase buffer limits
+- `src/lib/db/schema.ts` - Verify column types
+- `src/app/api/evaluations/[id]/route.ts` - Ensure full response returned
+- `src/components/panels/ConversationView.tsx` - Display full content with scroll
+
+### Acceptance Criteria
+- Full agent response is captured during test execution
+- Complete response is stored in database
+- API returns complete response without truncation
+- UI displays full response with appropriate scrolling
+
+---
+
+## Feature D20: Show TDX Execution Logs During Test Runs
+
+### Objective
+Stream TDX CLI execution logs to the UI when users run tests, providing feedback during agent execution.
+
+### Technical Approach
+
+Implement real-time log streaming from TDX CLI execution to the frontend using Server-Sent Events (SSE) or WebSocket.
+
+---
+
+### Implementation Details
+
+#### 1. Server-Sent Events Endpoint
+
+**New endpoint: `GET /api/test/stream`**:
+
+```typescript
+// src/app/api/test/stream/route.ts
+export async function GET(request: Request) {
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const sendLog = (message: string) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ log: message })}\n\n`));
+      };
+
+      // Execute TDX with streaming output
+      const process = spawn('tdx', ['agent', 'test', agentPath]);
+
+      process.stdout.on('data', (data) => {
+        sendLog(data.toString());
+      });
+
+      process.stderr.on('data', (data) => {
+        sendLog(`[ERROR] ${data.toString()}`);
+      });
+
+      process.on('close', (code) => {
+        sendLog(`[COMPLETE] Exit code: ${code}`);
+        controller.close();
+      });
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
+}
+```
+
+#### 2. Frontend Log Display Component
+
+**New component: `src/components/TestRunLogs.tsx`**:
+
+```typescript
+interface TestRunLogsProps {
+  isRunning: boolean;
+  testRunId: string | null;
+}
+
+function TestRunLogs({ isRunning, testRunId }: TestRunLogsProps) {
+  const [logs, setLogs] = useState<string[]>([]);
+  const logEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isRunning || !testRunId) return;
+
+    const eventSource = new EventSource(`/api/test/stream?runId=${testRunId}`);
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setLogs(prev => [...prev, data.log]);
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+    };
+
+    return () => eventSource.close();
+  }, [isRunning, testRunId]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
+
+  return (
+    <div className="test-logs bg-gray-900 text-green-400 font-mono text-sm p-4 rounded max-h-64 overflow-auto">
+      {logs.map((log, i) => (
+        <div key={i} className="log-line">{log}</div>
+      ))}
+      <div ref={logEndRef} />
+    </div>
+  );
+}
+```
+
+**UI Wireframe**:
+```
+┌─────────────────────────────────────────────────────┐
+│ Test Execution Logs                          [Hide] │
+├─────────────────────────────────────────────────────┤
+│ [TDX] Executing: tdx use llm_project "project"      │
+│ [TDX] Running agent test: agents/project/agent      │
+│ Round 1/5: Sending user input...                    │
+│ Round 1/5: Received response (245 tokens)           │
+│ Round 2/5: Sending user input...                    │
+│ ▌                                                   │
+└─────────────────────────────────────────────────────┘
+```
+
+#### 3. Integration with Test Execution
+
+**Update `POST /api/test`**:
+```typescript
+// Return stream URL for client to connect
+return NextResponse.json({
+  testRunId: newRunId,
+  streamUrl: `/api/test/stream?runId=${newRunId}`,
+  status: 'started'
+});
+```
+
+### Key Files to Modify
+- New: `src/app/api/test/stream/route.ts` - SSE endpoint
+- `src/app/api/test/route.ts` - Return stream info
+- New: `src/components/TestRunLogs.tsx` - Log display component
+- `src/app/page.tsx` or test runner UI - Integrate log component
+
+### Acceptance Criteria
+- User sees real-time TDX execution logs when clicking "Run Test"
+- Logs show TDX commands being executed
+- Logs show progress (e.g., "Round 1/5: Sending user input...")
+- Logs auto-scroll as new content arrives
+- User can hide/show log panel
+
+---
+
+## Feature D21: Fix Evaluation Results Storage and Display (Bug)
+
+### Objective
+Investigate and fix the bug where evaluation results show repeated "Round 1/1: Sending user input..." messages but data is not stored or displayed correctly.
+
+### Technical Approach
+
+Debug the data flow from TDX execution through storage to UI rendering to identify where results are being lost.
+
+---
+
+### Implementation Details
+
+#### 1. Symptoms Analysis
+
+**Observed Behavior:**
+- UI shows repeated "Round 1/1: Sending user input..." messages
+- Results appear to run but don't persist
+- Evaluation data not displaying in UI
+
+**Potential Root Causes:**
+1. TDX output parsing failure
+2. Database write failure
+3. API response formatting error
+4. Frontend state not updating
+
+#### 2. Debugging Steps
+
+**Step 1: Add Logging to TDX Executor**
+```typescript
+// src/lib/tdx/executor.ts
+export async function runAgentTest(agentPath: string) {
+  console.log('[DEBUG] Starting agent test:', agentPath);
+
+  const { stdout, stderr } = await execAsync(command);
+  console.log('[DEBUG] TDX stdout:', stdout);
+  console.log('[DEBUG] TDX stderr:', stderr);
+
+  const parsed = parseTdxOutput(stdout);
+  console.log('[DEBUG] Parsed results:', JSON.stringify(parsed, null, 2));
+
+  return parsed;
+}
+```
+
+**Step 2: Verify Database Writes**
+```typescript
+// src/app/api/test/route.ts
+const result = await db.run(
+  'INSERT INTO test_cases (test_run_id, prompt, agent_response, ...) VALUES (?, ?, ?, ...)',
+  [testRunId, prompt, agentResponse, ...]
+);
+console.log('[DEBUG] DB insert result:', result);
+
+// Verify with immediate read
+const verification = await db.get('SELECT * FROM test_cases WHERE id = ?', [result.lastID]);
+console.log('[DEBUG] Verification read:', verification);
+```
+
+**Step 3: Check API Response**
+```typescript
+// src/app/api/evaluations/[id]/route.ts
+console.log('[DEBUG] Returning evaluation:', JSON.stringify(response, null, 2));
+return NextResponse.json(response);
+```
+
+**Step 4: Frontend State Debugging**
+```typescript
+// src/context/EvaluationContext.tsx
+useEffect(() => {
+  console.log('[DEBUG] Evaluations state updated:', evaluations);
+}, [evaluations]);
+```
+
+#### 3. Common Fixes
+
+**Parser Not Handling Output Format:**
+```typescript
+// src/lib/tdx/parser.ts
+export function parseTdxOutput(output: string): TestResult[] {
+  // Handle edge cases
+  if (!output || output.trim() === '') {
+    console.warn('[WARN] Empty TDX output');
+    return [];
+  }
+
+  // Check for known patterns
+  const lines = output.split('\n');
+  // ... parsing logic
+}
+```
+
+**Async/Await Issues:**
+```typescript
+// Ensure all database operations complete
+await Promise.all(
+  testCases.map(tc =>
+    db.run('INSERT INTO test_cases ...', [...])
+  )
+);
+```
+
+**State Update After Mutation:**
+```typescript
+// Force refresh after test completion
+const runTest = async () => {
+  await api.runTest(agentId);
+  await fetchEvaluations(); // Refresh state
+};
+```
+
+### Key Files to Investigate
+- `src/lib/tdx/executor.ts` - TDX command execution
+- `src/lib/tdx/parser.ts` - Output parsing
+- `src/app/api/test/route.ts` - Test execution endpoint
+- `src/lib/db/operations.ts` - Database operations
+- `src/context/EvaluationContext.tsx` - Frontend state
+
+### Debugging Checklist
+- [ ] Add console logging at each step of data flow
+- [ ] Verify TDX CLI returns expected output format
+- [ ] Confirm database writes succeed with verification reads
+- [ ] Check API responses contain expected data
+- [ ] Verify frontend state updates after API calls
+- [ ] Test with simple/known-good agent to isolate issue
+
+### Acceptance Criteria
+- Evaluation results are stored correctly in database
+- Results display properly in evaluation UI
+- No repeated/duplicate log messages
+- Data persists after test completion
+
+---
+
 ## Implementation Checklist
 
-### D2: LLM Judge Results Display
+### D21: Fix Evaluation Results Storage and Display (Bug) - PRIORITY
 
-- [ ] Define `LlmJudgeResult` TypeScript interface
-- [ ] Update database schema (add column or use traces)
-- [ ] Enhance TDX parser to extract judge data
-- [ ] Update `GET /api/evaluations/[id]` response
-- [ ] Create `LlmJudgeResults.tsx` component
+- [ ] Add debugging logs throughout data flow
+- [ ] Identify root cause of storage/display failure
+- [ ] Implement fix
+- [ ] Verify with end-to-end test
+- [ ] Remove debug logging (or convert to proper logging)
+
+### D18: Pass/Fail Rating with Thumbs Up/Down
+
+- [ ] Update rating type definition in `src/lib/types/index.ts`
+- [ ] Create/update rating buttons component with thumbs icons
+- [ ] Update API validation for pass/fail values
+- [ ] Create database migration for existing ratings
+- [ ] Update keyboard shortcuts documentation
+- [ ] Test rating submission and persistence
+
+### D19: Complete Agent Response Display
+
+- [ ] Increase TDX executor buffer size
+- [ ] Verify database column allows full text storage
+- [ ] Ensure API returns complete response
+- [ ] Update UI to display full content with scroll
+- [ ] Test with large agent responses
+
+### D20: TDX Execution Logs Display
+
+- [ ] Create SSE streaming endpoint `/api/test/stream`
+- [ ] Modify TDX executor to stream output
+- [ ] Create `TestRunLogs.tsx` component
+- [ ] Integrate log display into test runner UI
+- [ ] Add hide/show toggle for log panel
+- [ ] Test real-time streaming behavior
+
+### D2: LLM Judge Results Display (Option B - Evaluator Agent)
+
+- [ ] Create `src/lib/llm/types.ts` - Define `LlmJudgeResult` interface with 6 required fields:
+  - verdict (pass/fail)
+  - reasoning (rich text)
+  - conversationUrl (clickable link)
+  - testNumber/totalTests (position indicator)
+  - testName
+  - prompt (test case prompt/user input)
+- [ ] Create `src/lib/llm/evaluator.ts` - LLM API client for evaluator agent
+  - Implement `createChat()` with evaluator agent ID `019ae82f-b843-79f5-95c6-c7968262b2c2`
+  - Implement `continueChat()` to send evaluation prompt
+  - Implement `getChatHistory()` to retrieve response
+  - Implement `parseEvaluatorResponse()` for JSON extraction
+- [ ] Create `src/lib/llm/prompts.ts` - Evaluation prompt templates
+- [ ] Update `POST /api/test/route.ts` - Integrate evaluator call after agent test
+- [ ] Update database schema - Add `llm_judge_result` column to `test_cases` table
+- [ ] Update `GET /api/evaluations/[id]` - Include LLM judge result in response
+- [ ] Create/Update `src/components/panels/LlmJudgeResults.tsx` with new layout:
+  - Test number header (n/total)
+  - Test name display
+  - Prompt display (test case prompt/user input)
+  - Verdict badge (pass/fail with icon)
+  - Rich reasoning text block
+  - Clickable conversation URL link
 - [ ] Integrate component into `ConversationView.tsx`
-- [ ] Add loading and error states
-- [ ] Test with various judge result formats
+- [ ] Add loading state during evaluation
+- [ ] Handle error states gracefully
 
 ### D3: Click-to-View LLM Results
 
@@ -849,8 +1445,13 @@ Test Execution:
 | Dependency | Purpose | Status |
 |------------|---------|--------|
 | TDX CLI installed | Agent listing, test execution | Required |
-| LLM API access | Evaluator agent calls (D2 Option B) | Optional |
+| LLM API access | Evaluator agent calls (D2 Option B) | **Required** |
 | Evaluator agent ID | `019ae82f-b843-79f5-95c6-c7968262b2c2` | From agent-eval-new |
+
+**D2 Option B Requirements:**
+- Valid API key with access to LLM API endpoints
+- Access to evaluator agent (ID: `019ae82f-b843-79f5-95c6-c7968262b2c2`)
+- Network access to LLM API (environment-specific URLs)
 
 ---
 
@@ -863,7 +1464,10 @@ Test Execution:
 
 ---
 
-*Document Version: 1.0*
+*Document Version: 1.2*
 *Created: 2026-02-10*
+*Updated: 2026-02-11*
 *Author: gwtd1*
 *Status: Technical Specification*
+*D2 Implementation: Option B (Evaluator Agent Direct Call) - Selected*
+*Changes: Added D18, D19, D20, D21 technical specifications*

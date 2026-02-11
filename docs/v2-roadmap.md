@@ -3,15 +3,19 @@
 
 The Agent Eval Tool is an app framework that uses manual human-in-the-loop evaluation and LLM-as-a-judge methodology to assess agent performance and accuracy. The tool integrates with TDX (Treasure Data) to manage test cases, execute evaluations, and provide comprehensive analysis of agent responses against ground truth data. V2 roadmap focuses on enhancing the user interface to display conversation traces and LLM evaluation results, improving data export capabilities, and streamlining test case management through CSV-to-YAML conversion. Future versions (V3) will expand functionality with manual test case creation, cloud deployment, advanced analytics including error clustering, and multi-reviewer support.
 
-## Items
+## V2 Features
 | ID | Category | Developer     | Requirement                                              | Notes                                                                                                                   |
 |----|----------|---------------|----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
 | D3 | UI       | gwtd1         | Make LLM as a judge results click-to-view                | Dependency on D2; Currently they do not appear at all                                                                   |
 | D4 | UI       |               | Export data filtering by rating (False or True)          | V1 exports all evaluations, filter for FALSE test cases                                                                 |
 | D2 | TDX      | gwtd1         | LLM as a judge results in evaluation UI frame            | Currently only see the agent output, not the LLM-as-a-judge results                                                     |
 | D5 | TDX      | tushar-fde-ai | manual input where claude code converts csv to yml file  | Create a TDX command to upload csv to add test cases to eval.yaml; Currently only TR and Honda have ground truth in csv |
-| D1 | UI + BE  |               | Show conversation traces in evaluation                   | Use API call to conversation or Look into using TDX to chat with agent and refactor to return traces                    |
+| D1 | UI + BE  | gwtd1         | Show conversation traces in evaluation                   | Use API call to conversation or Look into using TDX to chat with agent and refactor to return traces                    |
 | D6 | UI + BE  | gwtd1         | Query TDX project name/agent after user provides api key | V1 is hardcoded for TDX project name is tdx_default_gregwilliams                                                        |
+| D18 | UI       | gwtd1         | Change rating to Pass/Fail with thumbs up/down buttons   | Replace numeric/star rating with binary Pass/Fail; Use thumbs up/down icons for manual evaluation input                 |
+| D19 | UI + BE  | gwtd1         | Display complete agent response in evaluation            | Agent response section must return and display the entire response, not truncated                                        |
+| D20 | UI + BE  | gwtd1         | Show TDX execution logs during test runs                 | Stream TDX CLI logs to UI when user clicks "Run Test"; Show commands like `tdx use llm_project` and `tdx agent test`    |
+| D21 | Bug      | gwtd1         | Fix evaluation results storage and display               | Results show repeated "Round 1/1: Sending user input..." but don't store/display properly; Investigate data flow        |
 
 ## Requirements Explanation
 ### D1: Show conversation traces in evaluation 
@@ -30,9 +34,19 @@ The user shall be able to filter the output from the evaluation by for only fals
 The user shall manually input use cases and ground truth to test.yaml in claude tdx for a new agent. This will be used for customers that already have test cases and ground truth in csv files
 
 ### D6: Query TDX project name/agent after user provides api key
-The user shall enter an api key and select the correct project name and agent from tdx 
+The user shall enter an api key and select the correct project name and agent from tdx
 
+### D18: Change rating to Pass/Fail with thumbs up/down buttons
+The user shall evaluate agent responses using a binary Pass/Fail rating system instead of numeric ratings. The UI shall display thumbs up (Pass) and thumbs down (Fail) buttons for intuitive manual evaluation input.
 
+### D19: Display complete agent response in evaluation
+The user shall see the complete agent response in the evaluation UI. The agent response section must return and render the entire response from the agent without truncation.
+
+### D20: Show TDX execution logs during test runs
+The user shall see real-time TDX execution logs in the UI when running tests. Currently, clicking "Run Test" provides no feedback while the agent executes. The UI shall stream or display TDX CLI output including commands like `[TDX] Executing: tdx use llm_project "project_name" && tdx agent test "agents/project/agent-name"`.
+
+### D21: Fix evaluation results storage and display
+Bug: When running evaluations, results show repeated "Round 1/1: Sending user input..." messages but evaluation data is not being stored or displayed correctly in the UI. Investigation needed to trace data flow from TDX execution through storage to UI rendering.
 
 ## V3 Features 
                                                                                                                                                        
