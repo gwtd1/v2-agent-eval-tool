@@ -129,7 +129,15 @@ export function updateTestCaseLlmJudgeResult(id: string, result: LlmJudgeResult)
   const db = getDb();
   const resultJson = JSON.stringify(result);
   const stmt = db.prepare('UPDATE test_cases SET llm_judge_result = ? WHERE id = ?');
-  stmt.run(resultJson, id);
+  const updateResult = stmt.run(resultJson, id);
+
+  // Verify write succeeded
+  if (updateResult.changes === 0) {
+    console.error(`[DB] Failed to update llm_judge_result for test case: ${id} - no rows affected`);
+    return undefined;
+  }
+
+  console.log(`[DB] Updated llm_judge_result for test case: ${id}`);
   return getTestCase(id);
 }
 

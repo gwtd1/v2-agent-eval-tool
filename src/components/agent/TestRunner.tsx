@@ -11,15 +11,26 @@ interface TestRunnerProps {
 
 type Status = 'idle' | 'running' | 'complete' | 'error';
 
+interface ErrorDetails {
+  rawOutput?: string;
+  stderr?: string;
+  needsTestFile?: boolean;
+  autoRecoveryAttempted?: boolean;
+}
+
 export function TestRunner({ agentPath, onComplete }: TestRunnerProps) {
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const handleRunTest = async () => {
     if (!agentPath) return;
 
     setStatus('running');
     setError(null);
+    setErrorDetails(null);
+    setShowDetails(false);
 
     try {
       const response = await fetch('/api/test', {
@@ -33,6 +44,13 @@ export function TestRunner({ agentPath, onComplete }: TestRunnerProps) {
       const data: TestResponse = await response.json();
 
       if (!response.ok || data.status === 'failed') {
+        // Store error details for display
+        setErrorDetails({
+          rawOutput: data.rawOutput,
+          stderr: data.error,
+          needsTestFile: data.needsTestFile,
+          autoRecoveryAttempted: data.autoRecoveryAttempted,
+        });
         throw new Error(data.error || 'Test execution failed');
       }
 
@@ -84,10 +102,75 @@ export function TestRunner({ agentPath, onComplete }: TestRunnerProps) {
 
       {status === 'error' && error && (
         <div className="bg-red-50 rounded-lg border border-red-200 p-3">
-          <p className="text-red-700 text-sm">{error}</p>
+          <div className="flex items-start gap-2">
+            <svg
+              className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div className="flex-1">
+              <p className="text-red-700 text-sm font-medium">
+                {errorDetails?.needsTestFile
+                  ? 'Test file missing'
+                  : errorDetails?.autoRecoveryAttempted
+                    ? 'Test failed after auto-recovery attempt'
+                    : 'Test execution failed'}
+              </p>
+              <p className="text-red-600 text-sm mt-1">{error}</p>
+
+              {errorDetails?.autoRecoveryAttempted && (
+                <p className="text-red-500 text-xs mt-1">
+                  Auto-recovery was attempted but the test still failed.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {errorDetails?.rawOutput && (
+            <div className="mt-3">
+              <button
+                onClick={() => setShowDetails(!showDetails)}
+                className="text-sm text-red-600 hover:text-red-800 flex items-center gap-1"
+              >
+                <svg
+                  className={`h-4 w-4 transition-transform ${showDetails ? 'rotate-90' : ''}`}
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+                {showDetails ? 'Hide Details' : 'Show Details'}
+              </button>
+
+              {showDetails && (
+                <div className="mt-2 bg-red-100 rounded p-2 overflow-x-auto">
+                  <pre className="text-xs text-red-800 whitespace-pre-wrap break-words">
+                    {errorDetails.rawOutput}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+
           <button
             onClick={handleRunTest}
-            className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+            className="mt-3 text-sm text-red-600 hover:text-red-800 underline"
           >
             Retry
           </button>

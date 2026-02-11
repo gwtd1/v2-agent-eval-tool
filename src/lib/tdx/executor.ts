@@ -57,7 +57,8 @@ export async function executeTdxCommand(
     const exitCode = execError.code || 1;
 
     console.log(`[TDX] Completed in ${duration}ms, exit code: ${exitCode}`);
-    console.error(`[TDX] Error: ${execError.stderr || execError.message || 'Unknown error'}`);
+    console.log(`[TDX] stdout:\n${execError.stdout || '(empty)'}`);
+    console.error(`[TDX] stderr:\n${execError.stderr || execError.message || '(empty)'}`);
 
     return {
       stdout: execError.stdout || '',
@@ -131,4 +132,46 @@ export async function getTdxAgentDetails(agentPath: string): Promise<TdxCommandR
 export async function checkTdxAvailable(): Promise<boolean> {
   const result = await executeTdxCommand('tdx --version');
   return result.exitCode === 0;
+}
+
+/**
+ * Initialize TDX agent test file (creates test.yml)
+ */
+export async function initTdxAgentTest(agentPath: string): Promise<TdxCommandResult> {
+  // Extract project and agent from path (format: "project/agent" or "agents/project/agent")
+  const parts = agentPath.split('/');
+  let projectName: string;
+  let agentName: string;
+
+  if (parts.length >= 3 && parts[0] === 'agents') {
+    // Format: agents/project/agent
+    projectName = parts[1];
+    agentName = parts[2];
+  } else if (parts.length >= 2) {
+    // Format: project/agent
+    projectName = parts[0];
+    agentName = parts[1];
+  } else {
+    // Just agent name - try to run without project context
+    agentName = agentPath;
+    projectName = '';
+  }
+
+  // Escape for shell safety
+  const escapedAgent = agentName.replace(/"/g, '\\"');
+  const escapedProject = projectName.replace(/"/g, '\\"');
+
+  // If we have a project, set context first then run test-init with full path
+  if (projectName) {
+    const fullPath = `agents/${escapedProject}/${escapedAgent}`;
+    const command = `tdx use llm_project "${escapedProject}" && tdx agent test-init "${fullPath}"`;
+    return executeTdxCommand(command, {
+      timeout: 60000, // 1 minute for init
+    });
+  }
+
+  // No project context - just run the test-init
+  return executeTdxCommand(`tdx agent test-init "${escapedAgent}"`, {
+    timeout: 60000, // 1 minute for init
+  });
 }
