@@ -40,7 +40,9 @@ The user shall enter an api key and select the correct project name and agent fr
 The user shall evaluate agent responses using a binary Pass/Fail rating system instead of numeric ratings. The UI shall display thumbs up (Pass) and thumbs down (Fail) buttons for intuitive manual evaluation input.
 
 ### D19: Display complete agent response in evaluation
-The user shall see the complete agent response in the evaluation UI. The agent response section must return and render the entire response from the agent without truncation.
+The user shall see the complete agent response in the evaluation UI. Currently the UI shows "Response contains 'True'" instead of the actual agent response. This seems to be hardcoded. The UI needs to show the agents true response.
+
+The agent response section must return and render the entire response from the agent without truncation.
 
 ### D20: Show TDX execution logs during test runs
 The user shall see real-time TDX execution logs in the UI when running tests. Currently, clicking "Run Test" provides no feedback while the agent executes. The UI shall stream or display TDX CLI output including commands like `[TDX] Executing: tdx use llm_project "project_name" && tdx agent test "agents/project/agent-name"`.
