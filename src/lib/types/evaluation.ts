@@ -1,7 +1,7 @@
 export interface Evaluation {
   id: string;
   testCaseId: string;
-  rating: 'true' | 'false' | null;
+  rating: 'pass' | 'fail' | null;
   notes: string;
   durationMs: number | null;
   createdAt: string;

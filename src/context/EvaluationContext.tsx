@@ -21,7 +21,7 @@ interface EvaluationContextState {
 interface EvaluationContextActions {
   setTestRun: (testRunId: string) => Promise<void>;
   selectTestCase: (testCaseId: string) => void;
-  updateRating: (evaluationId: string, rating: 'true' | 'false') => Promise<void>;
+  updateRating: (evaluationId: string, rating: 'pass' | 'fail') => Promise<void>;
   updateNotes: (evaluationId: string, notes: string) => Promise<void>;
   toggleLlmResultsVisibility: (testCaseId: string) => void;
 }
@@ -56,13 +56,50 @@ export function EvaluationProvider({ children }: EvaluationProviderProps) {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const response = await fetch(`/api/evaluations?testRunId=${testRunId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch evaluations');
+      // Retry logic: fetch evaluations up to 3 times with 500ms delay
+      // This handles race conditions where DB writes may not be fully committed
+      const maxAttempts = 3;
+      const retryDelay = 500;
+      let evaluations: EvaluationWithTestCase[] = [];
+      let lastError: Error | null = null;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const response = await fetch(`/api/evaluations?testRunId=${testRunId}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch evaluations');
+          }
+
+          const data = await response.json();
+          evaluations = data.evaluations as EvaluationWithTestCase[];
+
+          // If we got evaluations, we're done
+          if (evaluations.length > 0) {
+            console.log(`[EvaluationContext] Fetched ${evaluations.length} evaluations on attempt ${attempt}`);
+            break;
+          }
+
+          // If no evaluations and not last attempt, wait and retry
+          if (attempt < maxAttempts) {
+            console.log(`[EvaluationContext] No evaluations found, retrying in ${retryDelay}ms (attempt ${attempt}/${maxAttempts})`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          }
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error('Unknown error');
+          if (attempt < maxAttempts) {
+            console.log(`[EvaluationContext] Fetch failed, retrying in ${retryDelay}ms (attempt ${attempt}/${maxAttempts})`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          }
+        }
       }
 
-      const data = await response.json();
-      const evaluations = data.evaluations as EvaluationWithTestCase[];
+      // If we still have no evaluations after all retries, log warning
+      if (evaluations.length === 0) {
+        console.warn(`[EvaluationContext] No evaluations found after ${maxAttempts} attempts for testRunId: ${testRunId}`);
+        if (lastError) {
+          throw lastError;
+        }
+      }
 
       setState((prev) => ({
         ...prev,
@@ -84,7 +121,8 @@ export function EvaluationProvider({ children }: EvaluationProviderProps) {
     setState((prev) => ({ ...prev, selectedTestCaseId: testCaseId }));
   }, []);
 
-  const updateRating = useCallback(async (evaluationId: string, rating: 'true' | 'false') => {
+  const updateRating = useCallback(async (evaluationId: string, rating: 'pass' | 'fail') => {
+    console.log(`[EvaluationContext] updateRating called: ${evaluationId}, rating: ${rating}`);
     try {
       const response = await fetch(`/api/evaluations/${evaluationId}`, {
         method: 'PATCH',
@@ -93,8 +131,13 @@ export function EvaluationProvider({ children }: EvaluationProviderProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update rating');
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`[EvaluationContext] API error:`, response.status, errorData);
+        throw new Error(errorData.error || 'Failed to update rating');
       }
+
+      const data = await response.json();
+      console.log(`[EvaluationContext] API success:`, data);
 
       setState((prev) => ({
         ...prev,
@@ -104,8 +147,9 @@ export function EvaluationProvider({ children }: EvaluationProviderProps) {
             : e
         ),
       }));
+      console.log(`[EvaluationContext] State updated with rating: ${rating}`);
     } catch (error) {
-      console.error('Failed to update rating:', error);
+      console.error('[EvaluationContext] Failed to update rating:', error);
     }
   }, []);
 
