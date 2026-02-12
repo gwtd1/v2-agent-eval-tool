@@ -16,6 +16,9 @@ The Agent Eval Tool is an app framework that uses manual human-in-the-loop evalu
 | D19 | UI + BE  | gwtd1         | Display complete agent response in evaluation            |           | Agent response section must return and display the entire response, not truncated                                        |
 | D20 | UI + BE  | gwtd1         | Show TDX execution logs during test runs                 |           | Stream TDX CLI logs to UI when user clicks "Run Test"; Show commands like `tdx use llm_project` and `tdx agent test`    |
 | D21 | Bug      | gwtd1         | Fix evaluation results storage and display               | Completed | Results show repeated "Round 1/1: Sending user input..." but don't store/display properly; Investigate data flow        |
+| D22 | Bug      |               | Fix test.yml creation for agents without one             |           | Feature for creating test.yml for an agent that doesn't have one currently is broken                                     |
+| D23 | UI       |               | Remove Evaluation Chat options from eval dropdown        |           | Remove "Evaluation Chat" and "View evaluation conversation" from the evaluation dropdown menu                            |
+| D24 | UI + BE  |               | Replace conversation view with tdx llm history output    |           | Replace Evaluation Chat/View conversation button with full chat text from `tdx llm history` call                         |
 
 ## Requirements Explanation
 ### D1: Show conversation traces in evaluation 
@@ -50,6 +53,15 @@ The user shall see real-time TDX execution logs in the UI when running tests. Cu
 ### D21: Fix evaluation results storage and display
 Bug: When running evaluations, results show repeated "Round 1/1: Sending user input..." messages but evaluation data is not being stored or displayed correctly in the UI. Investigation needed to trace data flow from TDX execution through storage to UI rendering.
 
+### D22: Fix test.yml creation for agents without one
+Bug: The feature for creating a test.yml file for an agent that doesn't currently have one is broken. Users should be able to generate a test.yml template for any agent.
+
+### D23: Remove Evaluation Chat options from eval dropdown
+The user shall not see "Evaluation Chat" and "View evaluation conversation" options in the evaluation dropdown menu. These options should be removed from the UI.
+
+### D24: Replace conversation view with tdx llm history output
+The user shall see the full chat text from the `tdx llm history` call instead of the current Evaluation Chat/View conversation button. This uses Approach 3 from the D19 research (see `docs/D19-chat-history-research.md`).
+
 ## V3 Features 
                                                                                                                                                        
 ### V3-agent-eval-tool
@@ -65,5 +77,6 @@ Bug: When running evaluations, results show repeated "Round 1/1: Sending user in
 | D14 | Full service API layer architecture       | V1 keeps simple CRUD in route handlers                                                        |
 | D15 | Structured JSON logging for production    | V1 uses console logging for development                                                       |
 | D16 | Multi-reviewer support (reviewerId field) | V1 is single-user; field removed for simplicity                                               |
-| D17 | Pagination for Previous Test Runs         | The Previous Test Runs need a scroll or pagination on the into screen                         |
+| D17 | Pagination for Previous Test Runs         | The Previous Test Runs need a scroll or pagination on the intro screen                        |
+| D25 | Cloud storage for test.yml                | Store test.yml for each agent in the cloud so it can be called remotely                       |
 
