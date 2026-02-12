@@ -352,10 +352,10 @@ The purpose of human-in-the-loop evaluation is to gather unbiased human judgment
 
 ---
 
-## Task 7: D6 - Query TDX Project Name/Agent After User Provides API Key
+## Task 7: D6 - Query TDX Project Name/Agent After User Provides API Key in the landing page
 
 ### Objective
-Replace hardcoded TDX project name (`tdx_default_gregwilliams`) with dynamic project/agent selection based on user-provided API key.
+Replace hardcoded TDX project name (`tdx_default_gregwilliams`) with dynamic project/agent selection based on user-provided API key in the landing page.
 
 ### Current State Analysis
 
