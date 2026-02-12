@@ -16,6 +16,18 @@ export interface TdxExecutorOptions {
 
 const DEFAULT_TIMEOUT = 120000; // 2 minutes
 
+export interface ChatHistoryEntry {
+  input?: string;   // User message
+  content?: string; // Agent response
+  at: string;       // ISO timestamp
+}
+
+export interface ChatHistoryResult {
+  entries: ChatHistoryEntry[];
+  exitCode: number;
+  error?: string;
+}
+
 /**
  * Execute a TDX CLI command
  */
@@ -135,6 +147,45 @@ export async function checkTdxAvailable(): Promise<boolean> {
 }
 
 /**
+ * Execute TDX chat command to get actual agent response
+ * Uses: tdx chat --new "<prompt>" --agent "<project/agent>"
+ */
+export async function executeTdxChat(
+  agentPath: string,
+  prompt: string
+): Promise<TdxCommandResult> {
+  // Extract project and agent from path
+  const parts = agentPath.split('/');
+  let projectName: string;
+  let agentName: string;
+
+  if (parts.length >= 3 && parts[0] === 'agents') {
+    projectName = parts[1];
+    agentName = parts[2];
+  } else if (parts.length >= 2) {
+    projectName = parts[0];
+    agentName = parts[1];
+  } else {
+    agentName = agentPath;
+    projectName = '';
+  }
+
+  // Escape for shell safety - escape single quotes for the prompt
+  const escapedPrompt = prompt.replace(/'/g, "'\\''");
+  const agentIdentifier = projectName ? `${projectName}/${agentName}` : agentName;
+  const escapedAgent = agentIdentifier.replace(/"/g, '\\"');
+
+  // Build command: tdx chat --new '<prompt>' --agent "<agent>"
+  const command = `tdx chat --new '${escapedPrompt}' --agent "${escapedAgent}"`;
+
+  console.log(`[TDX Chat] Executing for agent: ${agentIdentifier}`);
+
+  return executeTdxCommand(command, {
+    timeout: 120000, // 2 minutes for chat response
+  });
+}
+
+/**
  * Initialize TDX agent test file (creates test.yml)
  */
 export async function initTdxAgentTest(agentPath: string): Promise<TdxCommandResult> {
@@ -174,4 +225,48 @@ export async function initTdxAgentTest(agentPath: string): Promise<TdxCommandRes
   return executeTdxCommand(`tdx agent test-init "${escapedAgent}"`, {
     timeout: 60000, // 1 minute for init
   });
+}
+
+/**
+ * Extract thread ID from TD Console conversation URL
+ * URL format: https://console-next.../tc/019c4f29-04ab-79d8-8573-a9dfbf11f3b1
+ */
+export function extractThreadIdFromUrl(conversationUrl: string): string | null {
+  const match = conversationUrl.match(/\/tc\/([a-f0-9-]+)/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * Execute TDX LLM history command to get conversation history
+ * Uses: tdx llm history <thread_id> --json
+ *
+ * This retrieves the exact conversation from a previous test run,
+ * avoiding the need to create a new chat session.
+ */
+export async function executeTdxLlmHistory(chatId: string): Promise<ChatHistoryResult> {
+  // Escape the chatId for shell safety
+  const escapedChatId = chatId.replace(/[^a-f0-9-]/gi, '');
+
+  const result = await executeTdxCommand(`tdx llm history ${escapedChatId} --json`, {
+    timeout: 30000, // 30 seconds should be enough for history fetch
+  });
+
+  if (result.exitCode === 0) {
+    try {
+      const entries = JSON.parse(result.stdout) as ChatHistoryEntry[];
+      return { entries, exitCode: 0 };
+    } catch (parseError) {
+      return {
+        entries: [],
+        exitCode: 1,
+        error: `Failed to parse JSON response: ${parseError}`,
+      };
+    }
+  }
+
+  return {
+    entries: [],
+    exitCode: result.exitCode,
+    error: result.stderr || 'Unknown error',
+  };
 }

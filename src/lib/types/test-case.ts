@@ -8,6 +8,7 @@ export interface TestCase {
   agentResponse: string | null;
   traces: string | null; // JSON string, deferred to V2
   llmJudgeResult: LlmJudgeResult | null;
+  chatLink: string | null; // URL to view full conversation in TD Console
   createdAt: string;
 }
 

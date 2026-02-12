@@ -82,10 +82,10 @@ export function createTestCase(data: Omit<TestCase, 'id' | 'createdAt'>): TestCa
   const id = uuidv4();
   const llmJudgeResultJson = data.llmJudgeResult ? JSON.stringify(data.llmJudgeResult) : null;
   const stmt = db.prepare(`
-    INSERT INTO test_cases (id, test_run_id, prompt, ground_truth, agent_response, traces, llm_judge_result)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO test_cases (id, test_run_id, prompt, ground_truth, agent_response, traces, llm_judge_result, chat_link)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  stmt.run(id, data.testRunId, data.prompt, data.groundTruth, data.agentResponse, data.traces, llmJudgeResultJson);
+  stmt.run(id, data.testRunId, data.prompt, data.groundTruth, data.agentResponse, data.traces, llmJudgeResultJson, data.chatLink);
   return getTestCase(id)!;
 }
 

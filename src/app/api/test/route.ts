@@ -7,7 +7,7 @@ import {
   updateTestRunStatus,
   updateTestCaseLlmJudgeResult,
 } from '@/lib/db/queries';
-import { executeTdxAgentTest, initTdxAgentTest } from '@/lib/tdx/executor';
+import { executeTdxAgentTest, initTdxAgentTest, executeTdxLlmHistory, extractThreadIdFromUrl } from '@/lib/tdx/executor';
 import { extractTestCasesFromOutput, parseAgentPath, readTestYamlForAgent } from '@/lib/tdx/parser';
 import { evaluateWithLlm } from '@/lib/llm/evaluator';
 import type { TestCase } from '@/lib/types';
@@ -153,21 +153,64 @@ export async function POST(request: NextRequest) {
     // Store test name mapping for LLM evaluation
     const testNameMap = new Map<string, string>();
 
+    // Fetch actual agent responses using tdx llm history for each test case
+    // This retrieves the exact response from the test run conversation (not a new session)
+    console.log(`[API] Fetching actual agent responses for ${parsedCases.length} test cases via chat history`);
+    const agentResponses = new Map<string, string>();
+
+    for (let i = 0; i < parsedCases.length; i++) {
+      const pc = parsedCases[i];
+
+      console.log(`[API] Fetching response ${i + 1}/${parsedCases.length}: ${pc.name}`);
+
+      // Use chatLink to get the thread ID and fetch history
+      if (pc.chatLink) {
+        const threadId = extractThreadIdFromUrl(pc.chatLink);
+        if (threadId) {
+          try {
+            const historyResult = await executeTdxLlmHistory(threadId);
+            if (historyResult.exitCode === 0 && historyResult.entries.length > 0) {
+              // Find the agent response (entry with 'content' field, not 'input')
+              const agentEntry = historyResult.entries.find(e => e.content !== undefined);
+              if (agentEntry?.content) {
+                agentResponses.set(pc.name, agentEntry.content);
+                console.log(`[API] Got response for ${pc.name}: ${agentEntry.content.substring(0, 100)}...`);
+              } else {
+                console.warn(`[API] No agent response found in history for ${pc.name}`);
+              }
+            } else {
+              console.warn(`[API] Failed to get history for ${pc.name}: ${historyResult.error || 'empty history'}`);
+            }
+          } catch (error) {
+            console.error(`[API] Error fetching history for ${pc.name}:`, error);
+          }
+        } else {
+          console.warn(`[API] Could not extract thread ID from chatLink for ${pc.name}: ${pc.chatLink}`);
+        }
+      } else {
+        console.warn(`[API] No chatLink available for ${pc.name}, using parsed response`);
+      }
+    }
+
     const createdTestCases = withTransaction(() => {
       const testCases: TestCase[] = [];
       for (let i = 0; i < parsedCases.length; i++) {
         const pc = parsedCases[i];
-        // Use user_input from test.yml as prompt, criteria as agentResponse
+        // Use user_input from test.yml as prompt
         const yamlData = testYamlData.get(pc.name);
         const prompt = yamlData?.userInput || pc.prompt;
-        const agentResponse = yamlData?.criteria || pc.agentResponse;
+        // Use actual agent response from tdx chat, fallback to parsed response
+        const agentResponse = agentResponses.get(pc.name) || pc.agentResponse;
+        // Use criteria from test.yml as ground truth
+        const groundTruth = yamlData?.criteria || pc.groundTruth;
         const testCase = createTestCase({
           testRunId: testRun.id,
           prompt,
-          groundTruth: pc.groundTruth,
+          groundTruth,
           agentResponse,
           traces: null,
           llmJudgeResult: null,
+          chatLink: pc.chatLink || null,
         });
 
         // Create initial evaluation (unrated)

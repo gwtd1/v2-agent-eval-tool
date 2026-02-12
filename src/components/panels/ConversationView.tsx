@@ -144,13 +144,28 @@ export function ConversationView({ testCase }: ConversationViewProps) {
 
         {/* Agent Response Section */}
         <section>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
-              R
-            </span>
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              Agent Response
-            </h3>
+           <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
+                R
+              </span>
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                Agent Response
+              </h3>
+            </div>
+            {testCase.chatLink && (
+              <a
+                href={testCase.chatLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+              >
+                View Full Conversation
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
           </div>
           {testCase.agentResponse ? (
             <ContentBlock content={testCase.agentResponse} variant="response" />

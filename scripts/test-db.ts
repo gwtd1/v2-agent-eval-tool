@@ -37,7 +37,8 @@ const testCase = createTestCase({
   groundTruth: '4',
   agentResponse: null,
   traces: null,
-  llmJudgeResult: null
+  llmJudgeResult: null,
+  chatLink: null
 });
 console.log('\n✓ Created test case:', testCase.id);
 
