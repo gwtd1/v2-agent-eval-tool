@@ -18,7 +18,6 @@ The Agent Eval Tool is an app framework that uses manual human-in-the-loop evalu
 | D21 | Bug      | gwtd1         | Fix evaluation results storage and display                                                  | Completed | Results show repeated "Round 1/1: Sending user input..." but don't store/display properly; Investigate data flow                                           |
 | D22 | Bug      | gwtd1         | Fix test.yml creation for agents without one                                                | Completed | Feature for creating test.yml for an agent that doesn't have one currently is broken                                                                       |
 | D23 | UI       | gwtd1         | Remove Evaluation Chat Button "view evaluation Conversation" from eval dropdown             | Completed | Remove "Evaluation Chat" and "View evaluation conversation" both button and text from the evaluation dropdown menu                                         |
-| D24 | UI       | gwtd1         | Fix bug for test cases status in left UI section as status not updating from manual eval    |           | When manual eval us completed by the user the test case in the left side panel does not update with pass or fail                                           |
 | D26 | UI       | gwtd1         | Traces are converted to mermaid code and mermaid chart shown to user instead of text traces |           | When manual human evaluator clicks into the conversation traces a mermaid chart of the flow of traces appears for the user to view instead of text traces  |
 
 ## Requirements Explanation
@@ -59,9 +58,6 @@ Bug: The feature for creating a test.yml file for an agent that doesn't currentl
 
 ### D23: Remove Evaluation Chat options from eval dropdown
 The user shall not see "Evaluation Chat" text and the "View evaluation conversation" button in the evaluation dropdown menu. Remove Evaluation Chat Button "view evaluation Conversation" from eval dropdown. Remove "Evaluation Chat" text and "View evaluation conversation" both button and text from the evaluation dropdown menu
-
-### D24: Fix test case status update from manual evaluation
-Bug: When a user completes a manual evaluation (Pass/Fail) for a test case, the test case status in the left side panel does not update to reflect the evaluation result. The UI should update the test case list item to show the pass/fail status immediately after the user submits their evaluation.
 
 ### D26: Display traces as Mermaid flowchart
 The user shall see conversation traces visualized as a Mermaid flowchart instead of raw text. When the evaluator clicks to view conversation traces, the system shall:
