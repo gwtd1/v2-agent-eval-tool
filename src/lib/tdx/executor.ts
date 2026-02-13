@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
+import { generateTestCases, formatTestCasesAsYaml } from '../llm/testGenerator';
 
 const execAsync = promisify(exec);
 
@@ -192,12 +193,17 @@ export async function executeTdxChat(
  *
  * This function handles the full auto-recovery flow:
  * 1. If agent not pulled locally → run `tdx agent pull`
- * 2. If no test.yml exists → create template test.yml
+ * 2. Read agent's prompt.md to understand its purpose
+ * 3. Generate meaningful test cases using LLM based on the prompt
+ * 4. Create test.yml with agent-specific test cases
  *
  * Note: TDX CLI does not have a `test-init` command, so we create the file directly.
  * The test.yml file is stored locally and read by `tdx agent test`.
  */
-export async function initTdxAgentTest(agentPath: string): Promise<TdxCommandResult> {
+export async function initTdxAgentTest(
+  agentPath: string,
+  apiKey?: string
+): Promise<TdxCommandResult> {
   // Extract project and agent from path (format: "project/agent" or "agents/project/agent")
   const parts = agentPath.split('/');
   let projectName: string;
@@ -267,23 +273,45 @@ export async function initTdxAgentTest(agentPath: string): Promise<TdxCommandRes
     };
   }
 
-  // Generate template test.yml content
+  // Read the agent's prompt.md to understand its purpose
+  const promptPath = path.join(agentDir, 'prompt.md');
+  let agentPrompt = '';
+
+  if (fs.existsSync(promptPath)) {
+    try {
+      agentPrompt = fs.readFileSync(promptPath, 'utf8');
+      console.log(`[TDX] Read prompt.md (${agentPrompt.length} chars)`);
+    } catch (error) {
+      console.warn(`[TDX] Could not read prompt.md: ${error}`);
+    }
+  }
+
+  let testYmlContent: string;
+
+  // Generate test cases using LLM if API key is available and we have a prompt
+  if (apiKey && agentPrompt) {
+    console.log(`[TDX] Generating test cases using LLM for agent: ${agentName}`);
+    try {
+      const testCases = await generateTestCases(agentName, agentPrompt, apiKey);
+      testYmlContent = formatTestCasesAsYaml(agentName, testCases);
+      console.log(`[TDX] Generated ${testCases.length} test cases using LLM`);
+    } catch (error) {
+      console.error(`[TDX] Failed to generate test cases with LLM: ${error}`);
+      console.log(`[TDX] Falling back to basic template`);
+      testYmlContent = generateBasicTemplate(agentName);
+    }
+  } else {
+    console.log(`[TDX] No API key or prompt available, using basic template`);
+    testYmlContent = generateBasicTemplate(agentName);
+  }
+
+  // Write test.yml
   console.log(`[TDX] Creating test.yml at: ${testYmlPath}`);
-  const templateContent = `# Test cases for ${agentName}
-# Add your test cases below
-# Documentation: https://tdx.treasuredata.com/commands/agent.html
-
-tests:
-  - name: "Basic test"
-    user_input: "Hello"
-    criteria: "Agent responds appropriately"
-`;
-
   try {
-    fs.writeFileSync(testYmlPath, templateContent, 'utf8');
+    fs.writeFileSync(testYmlPath, testYmlContent, 'utf8');
     console.log(`[TDX] Successfully created test.yml at: ${testYmlPath}`);
     return {
-      stdout: `Successfully pulled agent and created test.yml at ${testYmlPath}`,
+      stdout: `Successfully created test.yml at ${testYmlPath}`,
       stderr: '',
       exitCode: 0,
     };
@@ -296,6 +324,21 @@ tests:
       exitCode: 1,
     };
   }
+}
+
+/**
+ * Generate a basic test.yml template when LLM generation is not available.
+ */
+function generateBasicTemplate(agentName: string): string {
+  return `# Test cases for ${agentName}
+# Add your test cases below
+# Documentation: https://tdx.treasuredata.com/commands/agent.html
+
+tests:
+  - name: "Basic test"
+    user_input: "Hello"
+    criteria: "Agent responds appropriately"
+`;
 }
 
 /**

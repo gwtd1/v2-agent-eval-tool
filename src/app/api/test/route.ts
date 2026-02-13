@@ -108,11 +108,12 @@ export async function POST(request: NextRequest) {
         const needsTestFile = detectNeedsTestFile(result.stdout, result.stderr);
 
         if (needsTestFile) {
-          console.log('[API] Test file missing, attempting to create via tdx agent test-init');
+          console.log('[API] Test file missing, attempting to create via auto-recovery');
           autoRecoveryAttempted = true;
 
-          // Try to create test file
-          const initResult = await initTdxAgentTest(agentPath);
+          // Try to create test file with LLM-generated test cases
+          const apiKey = process.env.TD_API_KEY;
+          const initResult = await initTdxAgentTest(agentPath, apiKey);
 
           if (initResult.exitCode === 0) {
             console.log('[API] Test file created, retrying test execution');
