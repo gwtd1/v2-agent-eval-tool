@@ -1,8 +1,3 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
-
 interface GeneratedTestCase {
   name: string;
   user_input: string;
@@ -10,74 +5,177 @@ interface GeneratedTestCase {
 }
 
 /**
- * Build the prompt for generating test cases.
- * Keep it concise to get faster responses.
+ * Agent type detection based on name and prompt keywords.
  */
-function buildTestGenerationPrompt(agentName: string, agentPrompt: string): string {
-  // Truncate prompt if too long to speed up processing
-  const truncatedPrompt = agentPrompt.length > 1000
-    ? agentPrompt.substring(0, 1000) + '...[truncated]'
-    : agentPrompt;
+type AgentType = 'math' | 'language' | 'fact-check' | 'sentiment' | 'code' | 'qa' | 'general';
 
-  return `Generate 3 test cases for this agent. Return ONLY YAML, no other text.
+function detectAgentType(agentName: string, agentPrompt: string): AgentType {
+  const combined = `${agentName} ${agentPrompt}`.toLowerCase();
 
-Agent: ${agentName}
-Purpose: ${truncatedPrompt}
-
-Output format:
-tests:
-  - name: "Test Name"
-    user_input: "User message"
-    criteria: "Pass criteria"
-  - name: "Test Name 2"
-    user_input: "User message"
-    criteria: "Pass criteria"
-  - name: "Test Name 3"
-    user_input: "User message"
-    criteria: "Pass criteria"`;
+  if (combined.includes('math') || combined.includes('calcul') || combined.includes('algebra') || combined.includes('equation')) {
+    return 'math';
+  }
+  if (combined.includes('language') || combined.includes('translat') || combined.includes('detect language')) {
+    return 'language';
+  }
+  if (combined.includes('fact') || combined.includes('verify') || combined.includes('check') && combined.includes('true')) {
+    return 'fact-check';
+  }
+  if (combined.includes('sentiment') || combined.includes('emotion') || combined.includes('positive') && combined.includes('negative')) {
+    return 'sentiment';
+  }
+  if (combined.includes('code') || combined.includes('programming') || combined.includes('debug') || combined.includes('function')) {
+    return 'code';
+  }
+  if (combined.includes('question') || combined.includes('answer') || combined.includes('knowledge')) {
+    return 'qa';
+  }
+  return 'general';
 }
 
 /**
- * Parse the LLM response to extract test cases.
+ * Generate test cases based on detected agent type.
  */
-function parseTestCasesFromResponse(response: string): GeneratedTestCase[] {
-  // Try to extract YAML content
-  let yamlContent = response;
+function getTestCasesForType(agentType: AgentType): GeneratedTestCase[] {
+  switch (agentType) {
+    case 'math':
+      return [
+        {
+          name: 'Solve linear equation',
+          user_input: 'Solve for x: 2x + 5 = 15',
+          criteria: 'Agent provides correct solution (x = 5) with step-by-step explanation',
+        },
+        {
+          name: 'Calculate derivative',
+          user_input: 'What is the derivative of x^2 + 3x?',
+          criteria: 'Agent provides correct answer (2x + 3) with explanation of power rule',
+        },
+        {
+          name: 'Word problem',
+          user_input: 'A rectangle has length 8cm and width 5cm. What is its area and perimeter?',
+          criteria: 'Agent calculates area (40 sq cm) and perimeter (26 cm) correctly',
+        },
+      ];
 
-  // Remove markdown code blocks if present
-  const codeBlockMatch = response.match(/```(?:yaml|yml)?\s*([\s\S]*?)```/);
-  if (codeBlockMatch) {
-    yamlContent = codeBlockMatch[1];
+    case 'language':
+      return [
+        {
+          name: 'Detect English',
+          user_input: 'Hello, how are you today?',
+          criteria: 'Agent correctly identifies the language as English',
+        },
+        {
+          name: 'Detect Spanish',
+          user_input: 'Buenos días, ¿cómo estás?',
+          criteria: 'Agent correctly identifies the language as Spanish',
+        },
+        {
+          name: 'Detect Japanese',
+          user_input: 'こんにちは、元気ですか？',
+          criteria: 'Agent correctly identifies the language as Japanese',
+        },
+      ];
+
+    case 'fact-check':
+      return [
+        {
+          name: 'Verify true fact',
+          user_input: 'Is it true that water boils at 100 degrees Celsius at sea level?',
+          criteria: 'Agent confirms this is true with scientific explanation',
+        },
+        {
+          name: 'Verify false claim',
+          user_input: 'The Great Wall of China is visible from the Moon with naked eye.',
+          criteria: 'Agent identifies this as false and provides correct information',
+        },
+        {
+          name: 'Check historical fact',
+          user_input: 'Did World War II end in 1945?',
+          criteria: 'Agent confirms this is true with relevant historical context',
+        },
+      ];
+
+    case 'sentiment':
+      return [
+        {
+          name: 'Analyze positive sentiment',
+          user_input: 'I absolutely love this product! It exceeded all my expectations.',
+          criteria: 'Agent identifies sentiment as positive',
+        },
+        {
+          name: 'Analyze negative sentiment',
+          user_input: 'This is the worst experience I have ever had. Completely disappointed.',
+          criteria: 'Agent identifies sentiment as negative',
+        },
+        {
+          name: 'Analyze neutral sentiment',
+          user_input: 'The meeting is scheduled for 3pm tomorrow in the conference room.',
+          criteria: 'Agent identifies sentiment as neutral',
+        },
+      ];
+
+    case 'code':
+      return [
+        {
+          name: 'Explain function',
+          user_input: 'What does this code do? function add(a, b) { return a + b; }',
+          criteria: 'Agent explains the function adds two numbers and returns the result',
+        },
+        {
+          name: 'Fix bug',
+          user_input: 'Why does this loop never end? while(i < 10) { console.log(i); }',
+          criteria: 'Agent identifies that i is never incremented inside the loop',
+        },
+        {
+          name: 'Write function',
+          user_input: 'Write a function that checks if a number is even',
+          criteria: 'Agent provides correct implementation using modulo operator',
+        },
+      ];
+
+    case 'qa':
+      return [
+        {
+          name: 'Answer factual question',
+          user_input: 'What is the capital of France?',
+          criteria: 'Agent correctly answers Paris',
+        },
+        {
+          name: 'Explain concept',
+          user_input: 'What is photosynthesis?',
+          criteria: 'Agent explains the process of plants converting light to energy',
+        },
+        {
+          name: 'Answer how-to question',
+          user_input: 'How do I boil an egg?',
+          criteria: 'Agent provides clear step-by-step instructions',
+        },
+      ];
+
+    default:
+      return [
+        {
+          name: 'Basic capability test',
+          user_input: 'What can you help me with?',
+          criteria: 'Agent explains its capabilities clearly',
+        },
+        {
+          name: 'Follow instructions',
+          user_input: 'Please summarize this in one sentence: The quick brown fox jumps over the lazy dog.',
+          criteria: 'Agent provides a concise summary',
+        },
+        {
+          name: 'Handle clarification',
+          user_input: 'Can you help me?',
+          criteria: 'Agent asks for more details or explains how it can assist',
+        },
+      ];
   }
-
-  // Simple YAML parsing for our specific format
-  const testCases: GeneratedTestCase[] = [];
-
-  // Match test case blocks more flexibly
-  const testBlocks = yamlContent.split(/\n\s*-\s*name:/i);
-
-  for (let i = 1; i < testBlocks.length; i++) {
-    const block = '- name:' + testBlocks[i];
-
-    const nameMatch = block.match(/name:\s*["']?([^"'\n]+)["']?/i);
-    const inputMatch = block.match(/user_input:\s*["']?([^"'\n]+)["']?/i);
-    const criteriaMatch = block.match(/criteria:\s*["']?([^"'\n]+)["']?/i);
-
-    if (nameMatch && inputMatch && criteriaMatch) {
-      testCases.push({
-        name: nameMatch[1].trim().replace(/^["']|["']$/g, ''),
-        user_input: inputMatch[1].trim().replace(/^["']|["']$/g, ''),
-        criteria: criteriaMatch[1].trim().replace(/^["']|["']$/g, ''),
-      });
-    }
-  }
-
-  return testCases;
 }
 
 /**
- * Generate test cases for an agent based on its prompt using TDX CLI.
- * Uses tdx chat command which is more reliable than the API.
+ * Generate test cases for an agent based on its name and prompt.
+ * Uses heuristic detection to create appropriate test cases.
  */
 export async function generateTestCases(
   agentName: string,
@@ -87,47 +185,13 @@ export async function generateTestCases(
 ): Promise<GeneratedTestCase[]> {
   console.log(`[TestGenerator] Generating test cases for agent: ${agentName}`);
 
-  const generationPrompt = buildTestGenerationPrompt(agentName, agentPrompt);
+  const agentType = detectAgentType(agentName, agentPrompt);
+  console.log(`[TestGenerator] Detected agent type: ${agentType}`);
 
-  // Escape the prompt for shell - use base64 encoding to avoid escaping issues
-  const base64Prompt = Buffer.from(generationPrompt).toString('base64');
+  const testCases = getTestCasesForType(agentType);
+  console.log(`[TestGenerator] Generated ${testCases.length} test cases`);
 
-  // Use tdx chat with the evaluator agent (or any capable agent)
-  // Decode base64 prompt and pass to tdx chat
-  const command = `echo "${base64Prompt}" | base64 -d | tdx chat --new --agent "tdx_default_gregwilliams/tdx-agent-evaluator"`;
-
-  console.log(`[TestGenerator] Executing tdx chat command`);
-
-  try {
-    const { stdout, stderr } = await execAsync(command, {
-      timeout: 120000, // 2 minutes
-      env: {
-        ...process.env,
-        TD_API_KEY: process.env.TD_API_KEY,
-      },
-    });
-
-    if (stderr && !stderr.includes('Session')) {
-      console.warn(`[TestGenerator] stderr: ${stderr}`);
-    }
-
-    console.log(`[TestGenerator] Received response (${stdout.length} chars)`);
-
-    // Parse the response
-    const testCases = parseTestCasesFromResponse(stdout);
-
-    if (testCases.length === 0) {
-      console.warn(`[TestGenerator] Failed to parse test cases from: ${stdout.substring(0, 300)}...`);
-      throw new Error('Failed to parse test cases from LLM response');
-    }
-
-    console.log(`[TestGenerator] Generated ${testCases.length} test cases`);
-    return testCases;
-  } catch (error) {
-    const err = error as { code?: number; message?: string };
-    console.error(`[TestGenerator] Command failed: ${err.message}`);
-    throw new Error(`Test generation failed: ${err.message}`);
-  }
+  return testCases;
 }
 
 /**
