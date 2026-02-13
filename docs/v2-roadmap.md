@@ -57,7 +57,7 @@ Bug: When running evaluations, results show repeated "Round 1/1: Sending user in
 Bug: The feature for creating a test.yml file for an agent that doesn't currently have one is broken. Users should be able to generate a test.yml template for any agent.
 
 ### D23: Remove Evaluation Chat options from eval dropdown
-The user shall not see "Evaluation Chat" and "View evaluation conversation" options in the evaluation dropdown menu. These options should be removed from the UI.
+The user shall not see "Evaluation Chat" text and the "View evaluation conversation" button in the evaluation dropdown menu. Remove Evaluation Chat Button "view evaluation Conversation" from eval dropdown. Remove "Evaluation Chat" text and "View evaluation conversation" both button and text from the evaluation dropdown menu
 
 ### D24: Replace conversation view with tdx llm history output
 The user shall see the full chat text from the `tdx llm history` call instead of the current Evaluation Chat/View conversation button. This uses Approach 3 from the D19 research (see `docs/D19-chat-history-research.md`).
