@@ -1,5 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const execAsync = promisify(exec);
 
@@ -187,6 +189,9 @@ export async function executeTdxChat(
 
 /**
  * Initialize TDX agent test file (creates test.yml)
+ *
+ * Note: TDX CLI does not have a `test-init` command, so we create the file directly.
+ * The test.yml file is stored locally and read by `tdx agent test`.
  */
 export async function initTdxAgentTest(agentPath: string): Promise<TdxCommandResult> {
   // Extract project and agent from path (format: "project/agent" or "agents/project/agent")
@@ -203,28 +208,67 @@ export async function initTdxAgentTest(agentPath: string): Promise<TdxCommandRes
     projectName = parts[0];
     agentName = parts[1];
   } else {
-    // Just agent name - try to run without project context
-    agentName = agentPath;
-    projectName = '';
+    // Just agent name - cannot create test.yml without project context
+    return {
+      stdout: '',
+      stderr: 'Cannot create test.yml: agent path must include project (e.g., "project/agent")',
+      exitCode: 1,
+    };
   }
 
-  // Escape for shell safety
-  const escapedAgent = agentName.replace(/"/g, '\\"');
-  const escapedProject = projectName.replace(/"/g, '\\"');
+  // Construct the local file path
+  const agentDir = path.join(process.cwd(), 'agents', projectName, agentName);
+  const testYmlPath = path.join(agentDir, 'test.yml');
 
-  // If we have a project, set context first then run test-init with full path
-  if (projectName) {
-    const fullPath = `agents/${escapedProject}/${escapedAgent}`;
-    const command = `tdx use llm_project "${escapedProject}" && tdx agent test-init "${fullPath}"`;
-    return executeTdxCommand(command, {
-      timeout: 60000, // 1 minute for init
-    });
+  console.log(`[TDX] Creating test.yml at: ${testYmlPath}`);
+
+  // Check if agent directory exists
+  if (!fs.existsSync(agentDir)) {
+    return {
+      stdout: '',
+      stderr: `Agent directory not found: ${agentDir}. Run "tdx agent pull" first to download the agent.`,
+      exitCode: 1,
+    };
   }
 
-  // No project context - just run the test-init
-  return executeTdxCommand(`tdx agent test-init "${escapedAgent}"`, {
-    timeout: 60000, // 1 minute for init
-  });
+  // Check if test.yml already exists
+  if (fs.existsSync(testYmlPath)) {
+    console.log(`[TDX] test.yml already exists at: ${testYmlPath}`);
+    return {
+      stdout: `test.yml already exists at ${testYmlPath}`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  // Generate template test.yml content
+  const templateContent = `# Test cases for ${agentName}
+# Add your test cases below
+# Documentation: https://tdx.treasuredata.com/commands/agent.html
+
+tests:
+  - name: "Basic test"
+    user_input: "Hello"
+    criteria: "Agent responds appropriately"
+`;
+
+  try {
+    fs.writeFileSync(testYmlPath, templateContent, 'utf8');
+    console.log(`[TDX] Successfully created test.yml at: ${testYmlPath}`);
+    return {
+      stdout: `Successfully created test.yml at ${testYmlPath}`,
+      stderr: '',
+      exitCode: 0,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[TDX] Failed to create test.yml: ${errorMessage}`);
+    return {
+      stdout: '',
+      stderr: `Failed to create test.yml: ${errorMessage}`,
+      exitCode: 1,
+    };
+  }
 }
 
 /**

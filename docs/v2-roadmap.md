@@ -16,7 +16,7 @@ The Agent Eval Tool is an app framework that uses manual human-in-the-loop evalu
 | D19 | UI + BE  | gwtd1         | Display complete agent response in evaluation            | Completed | Agent response section must return and display the entire response, not truncated                                        |
 | D20 | UI + BE  | gwtd1         | Show TDX execution logs during test runs                 |           | Stream TDX CLI logs to UI when user clicks "Run Test"; Show commands like `tdx use llm_project` and `tdx agent test`    |
 | D21 | Bug      | gwtd1         | Fix evaluation results storage and display               | Completed | Results show repeated "Round 1/1: Sending user input..." but don't store/display properly; Investigate data flow        |
-| D22 | Bug      |               | Fix test.yml creation for agents without one             |           | Feature for creating test.yml for an agent that doesn't have one currently is broken                                     |
+| D22 | Bug      | gwtd1         | Fix test.yml creation for agents without one             | Completed | Feature for creating test.yml for an agent that doesn't have one currently is broken                                     |
 | D23 | UI       |               | Remove Evaluation Chat options from eval dropdown        |           | Remove "Evaluation Chat" and "View evaluation conversation" from the evaluation dropdown menu                            |
 | D24 | UI + BE  |               | Replace conversation view with tdx llm history output    |           | Replace Evaluation Chat/View conversation button with full chat text from `tdx llm history` call                         |
 
