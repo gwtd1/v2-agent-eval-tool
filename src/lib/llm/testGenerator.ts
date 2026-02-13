@@ -1,10 +1,7 @@
-import { getApiUrl } from './config';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
-const REQUEST_TIMEOUT = 90000; // 90 seconds for test generation
-
-// Use a general-purpose agent for test generation
-// This agent should be capable of understanding prompts and generating test cases
-const TEST_GENERATOR_AGENT_ID = '019ae82f-b843-79f5-95c6-c7968262b2c2';
+const execAsync = promisify(exec);
 
 interface GeneratedTestCase {
   name: string;
@@ -12,181 +9,32 @@ interface GeneratedTestCase {
   criteria: string;
 }
 
-interface ChatCreateApiResponse {
-  data: {
-    id: string;
-    type: string;
-    attributes: {
-      agentId: string;
-      createdAt: string;
-    };
-  };
-}
-
-interface ChatHistoryMessage {
-  input?: string;
-  content?: string;
-  at: string;
-}
-
-interface ChatHistoryResponse {
-  data: ChatHistoryMessage[];
-}
-
-/**
- * Fetch with timeout support.
- */
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit,
-  timeout = REQUEST_TIMEOUT
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
-    return response;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-/**
- * Create a new chat session for test generation.
- */
-async function createChat(apiKey: string): Promise<{ id: string }> {
-  const url = `${getApiUrl()}/chats`;
-
-  const response = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/vnd.api+json',
-      'Authorization': `TD1 ${apiKey}`,
-    },
-    body: JSON.stringify({
-      data: {
-        type: 'chats',
-        attributes: {
-          agentId: TEST_GENERATOR_AGENT_ID,
-        },
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to create chat: ${response.status} ${errorText}`);
-  }
-
-  const result: ChatCreateApiResponse = await response.json();
-  return { id: result.data.id };
-}
-
-/**
- * Continue chat with a message.
- */
-async function continueChat(
-  chatId: string,
-  message: string,
-  apiKey: string
-): Promise<void> {
-  const url = `${getApiUrl()}/chats/${chatId}/continue`;
-
-  const response = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/vnd.api+json',
-      'Authorization': `TD1 ${apiKey}`,
-    },
-    body: JSON.stringify({
-      input: message,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to continue chat: ${response.status} ${errorText}`);
-  }
-}
-
-/**
- * Get chat history.
- */
-async function getChatHistory(
-  chatId: string,
-  apiKey: string
-): Promise<ChatHistoryResponse> {
-  const url = `${getApiUrl()}/chats/${chatId}/history`;
-
-  const response = await fetchWithTimeout(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/vnd.api+json',
-      'Authorization': `TD1 ${apiKey}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to get chat history: ${response.status} ${errorText}`);
-  }
-
-  return response.json();
-}
-
-/**
- * Extract assistant response from history.
- */
-function extractAssistantResponse(history: ChatHistoryResponse): string {
-  const assistantMessages = history.data.filter(
-    msg => msg.content !== undefined
-  );
-
-  if (assistantMessages.length === 0) {
-    return '';
-  }
-
-  const lastAssistant = assistantMessages[assistantMessages.length - 1];
-  return lastAssistant.content || '';
-}
-
 /**
  * Build the prompt for generating test cases.
+ * Keep it concise to get faster responses.
  */
 function buildTestGenerationPrompt(agentName: string, agentPrompt: string): string {
-  return `You are a test case generator. Given an AI agent's system prompt, generate 3 meaningful test cases to evaluate the agent's performance.
+  // Truncate prompt if too long to speed up processing
+  const truncatedPrompt = agentPrompt.length > 1000
+    ? agentPrompt.substring(0, 1000) + '...[truncated]'
+    : agentPrompt;
 
-## Agent Name
-${agentName}
+  return `Generate 3 test cases for this agent. Return ONLY YAML, no other text.
 
-## Agent System Prompt
-${agentPrompt}
+Agent: ${agentName}
+Purpose: ${truncatedPrompt}
 
-## Task
-Generate exactly 3 test cases that will meaningfully evaluate this agent's core capabilities. Each test case should:
-1. Test a specific capability mentioned in the agent's prompt
-2. Have a clear, specific user input (not just "Hello")
-3. Have measurable evaluation criteria
-
-## Output Format
-Return ONLY valid YAML in this exact format, with no additional text before or after:
-
+Output format:
 tests:
-  - name: "Test Name 1"
-    user_input: "The actual user message to send to the agent"
-    criteria: "Specific criteria to evaluate if the response is correct"
+  - name: "Test Name"
+    user_input: "User message"
+    criteria: "Pass criteria"
   - name: "Test Name 2"
-    user_input: "The actual user message to send to the agent"
-    criteria: "Specific criteria to evaluate if the response is correct"
+    user_input: "User message"
+    criteria: "Pass criteria"
   - name: "Test Name 3"
-    user_input: "The actual user message to send to the agent"
-    criteria: "Specific criteria to evaluate if the response is correct"
-
-Generate test cases that actually test the agent's stated purpose, not generic greetings.`;
+    user_input: "User message"
+    criteria: "Pass criteria"`;
 }
 
 /**
@@ -204,72 +52,82 @@ function parseTestCasesFromResponse(response: string): GeneratedTestCase[] {
 
   // Simple YAML parsing for our specific format
   const testCases: GeneratedTestCase[] = [];
-  const testMatches = yamlContent.matchAll(
-    /-\s*name:\s*["']?([^"'\n]+)["']?\s*\n\s*user_input:\s*["']?([^"'\n]+(?:\n(?!\s*criteria:)[^"'\n]*)*)["']?\s*\n\s*criteria:\s*["']?([^"'\n]+(?:\n(?!\s*-\s*name:)[^"'\n]*)*)["']?/gi
-  );
 
-  for (const match of testMatches) {
-    testCases.push({
-      name: match[1].trim().replace(/^["']|["']$/g, ''),
-      user_input: match[2].trim().replace(/^["']|["']$/g, ''),
-      criteria: match[3].trim().replace(/^["']|["']$/g, ''),
-    });
+  // Match test case blocks more flexibly
+  const testBlocks = yamlContent.split(/\n\s*-\s*name:/i);
+
+  for (let i = 1; i < testBlocks.length; i++) {
+    const block = '- name:' + testBlocks[i];
+
+    const nameMatch = block.match(/name:\s*["']?([^"'\n]+)["']?/i);
+    const inputMatch = block.match(/user_input:\s*["']?([^"'\n]+)["']?/i);
+    const criteriaMatch = block.match(/criteria:\s*["']?([^"'\n]+)["']?/i);
+
+    if (nameMatch && inputMatch && criteriaMatch) {
+      testCases.push({
+        name: nameMatch[1].trim().replace(/^["']|["']$/g, ''),
+        user_input: inputMatch[1].trim().replace(/^["']|["']$/g, ''),
+        criteria: criteriaMatch[1].trim().replace(/^["']|["']$/g, ''),
+      });
+    }
   }
 
   return testCases;
 }
 
 /**
- * Generate test cases for an agent based on its prompt.
+ * Generate test cases for an agent based on its prompt using TDX CLI.
+ * Uses tdx chat command which is more reliable than the API.
  */
 export async function generateTestCases(
   agentName: string,
   agentPrompt: string,
-  apiKey: string
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _apiKey: string
 ): Promise<GeneratedTestCase[]> {
   console.log(`[TestGenerator] Generating test cases for agent: ${agentName}`);
 
   const generationPrompt = buildTestGenerationPrompt(agentName, agentPrompt);
 
-  // Create chat session
-  const chat = await createChat(apiKey);
-  console.log(`[TestGenerator] Created chat session: ${chat.id}`);
+  // Escape the prompt for shell - use base64 encoding to avoid escaping issues
+  const base64Prompt = Buffer.from(generationPrompt).toString('base64');
 
-  // Send the generation prompt
-  await continueChat(chat.id, generationPrompt, apiKey);
+  // Use tdx chat with the evaluator agent (or any capable agent)
+  // Decode base64 prompt and pass to tdx chat
+  const command = `echo "${base64Prompt}" | base64 -d | tdx chat --new --agent "tdx_default_gregwilliams/tdx-agent-evaluator"`;
 
-  // Poll for response
-  let responseContent = '';
-  const maxAttempts = 90;
-  const pollInterval = 1000;
+  console.log(`[TestGenerator] Executing tdx chat command`);
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const history = await getChatHistory(chat.id, apiKey);
-    responseContent = extractAssistantResponse(history);
+  try {
+    const { stdout, stderr } = await execAsync(command, {
+      timeout: 120000, // 2 minutes
+      env: {
+        ...process.env,
+        TD_API_KEY: process.env.TD_API_KEY,
+      },
+    });
 
-    if (responseContent) {
-      break;
+    if (stderr && !stderr.includes('Session')) {
+      console.warn(`[TestGenerator] stderr: ${stderr}`);
     }
 
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
+    console.log(`[TestGenerator] Received response (${stdout.length} chars)`);
+
+    // Parse the response
+    const testCases = parseTestCasesFromResponse(stdout);
+
+    if (testCases.length === 0) {
+      console.warn(`[TestGenerator] Failed to parse test cases from: ${stdout.substring(0, 300)}...`);
+      throw new Error('Failed to parse test cases from LLM response');
+    }
+
+    console.log(`[TestGenerator] Generated ${testCases.length} test cases`);
+    return testCases;
+  } catch (error) {
+    const err = error as { code?: number; message?: string };
+    console.error(`[TestGenerator] Command failed: ${err.message}`);
+    throw new Error(`Test generation failed: ${err.message}`);
   }
-
-  if (!responseContent) {
-    throw new Error('Timeout waiting for test generation response');
-  }
-
-  console.log(`[TestGenerator] Received response, parsing test cases`);
-
-  // Parse the response
-  const testCases = parseTestCasesFromResponse(responseContent);
-
-  if (testCases.length === 0) {
-    console.warn(`[TestGenerator] Failed to parse test cases from response: ${responseContent.substring(0, 200)}...`);
-    throw new Error('Failed to parse test cases from LLM response');
-  }
-
-  console.log(`[TestGenerator] Generated ${testCases.length} test cases`);
-  return testCases;
 }
 
 /**
