@@ -190,6 +190,10 @@ export async function executeTdxChat(
 /**
  * Initialize TDX agent test file (creates test.yml)
  *
+ * This function handles the full auto-recovery flow:
+ * 1. If agent not pulled locally → run `tdx agent pull`
+ * 2. If no test.yml exists → create template test.yml
+ *
  * Note: TDX CLI does not have a `test-init` command, so we create the file directly.
  * The test.yml file is stored locally and read by `tdx agent test`.
  */
@@ -220,15 +224,37 @@ export async function initTdxAgentTest(agentPath: string): Promise<TdxCommandRes
   const agentDir = path.join(process.cwd(), 'agents', projectName, agentName);
   const testYmlPath = path.join(agentDir, 'test.yml');
 
-  console.log(`[TDX] Creating test.yml at: ${testYmlPath}`);
+  console.log(`[TDX] Initializing test for agent: ${projectName}/${agentName}`);
 
-  // Check if agent directory exists
+  // Check if agent directory exists locally, if not pull from TDX
   if (!fs.existsSync(agentDir)) {
-    return {
-      stdout: '',
-      stderr: `Agent directory not found: ${agentDir}. Run "tdx agent pull" first to download the agent.`,
-      exitCode: 1,
-    };
+    console.log(`[TDX] Agent directory not found locally, pulling from TDX: ${agentDir}`);
+
+    // Pull agent from TDX: tdx agent pull <project> <agent-name>
+    const pullResult = await executeTdxCommand(
+      `tdx agent pull "${projectName}" "${agentName}"`,
+      { timeout: 60000 } // 1 minute for pull
+    );
+
+    if (pullResult.exitCode !== 0) {
+      console.error(`[TDX] Failed to pull agent: ${pullResult.stderr}`);
+      return {
+        stdout: pullResult.stdout,
+        stderr: `Failed to pull agent from TDX: ${pullResult.stderr}`,
+        exitCode: 1,
+      };
+    }
+
+    console.log(`[TDX] Successfully pulled agent: ${projectName}/${agentName}`);
+
+    // Verify directory now exists after pull
+    if (!fs.existsSync(agentDir)) {
+      return {
+        stdout: '',
+        stderr: `Agent pull succeeded but directory not found: ${agentDir}`,
+        exitCode: 1,
+      };
+    }
   }
 
   // Check if test.yml already exists
@@ -242,6 +268,7 @@ export async function initTdxAgentTest(agentPath: string): Promise<TdxCommandRes
   }
 
   // Generate template test.yml content
+  console.log(`[TDX] Creating test.yml at: ${testYmlPath}`);
   const templateContent = `# Test cases for ${agentName}
 # Add your test cases below
 # Documentation: https://tdx.treasuredata.com/commands/agent.html
@@ -256,7 +283,7 @@ tests:
     fs.writeFileSync(testYmlPath, templateContent, 'utf8');
     console.log(`[TDX] Successfully created test.yml at: ${testYmlPath}`);
     return {
-      stdout: `Successfully created test.yml at ${testYmlPath}`,
+      stdout: `Successfully pulled agent and created test.yml at ${testYmlPath}`,
       stderr: '',
       exitCode: 0,
     };
