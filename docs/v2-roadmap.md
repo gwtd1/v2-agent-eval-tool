@@ -4,20 +4,22 @@
 The Agent Eval Tool is an app framework that uses manual human-in-the-loop evaluation and LLM-as-a-judge methodology to assess agent performance and accuracy. The tool integrates with TDX (Treasure Data) to manage test cases, execute evaluations, and provide comprehensive analysis of agent responses against ground truth data. V2 roadmap focuses on enhancing the user interface to display conversation traces and LLM evaluation results, improving data export capabilities, and streamlining test case management through CSV-to-YAML conversion. Future versions (V3) will expand functionality with manual test case creation, cloud deployment, advanced analytics including error clustering, and multi-reviewer support.
 
 ## V2 Features
-| ID  | Category | Developer     | Requirement                                                                    | Status    | Notes                                                                                                                   |
-|-----|----------|---------------|--------------------------------------------------------------------------------|-----------|-------------------------------------------------------------------------------------------------------------------------|
-| D1  | UI + BE  | gwtd1         | Show conversation traces in evaluation                                         |           | Use API call to conversation or Look into using TDX to chat with agent and refactor to return traces                    |
-| D2  | TDX      | gwtd1         | LLM as a judge results in evaluation UI frame                                  | Completed | Currently only see the agent output, not the LLM-as-a-judge results                                                     |
-| D3  | UI       | gwtd1         | Make LLM as a judge results click-to-view                                      | Completed | Dependency on D2; Currently they do not appear at all                                                                   |
-| D4  | UI       | gwtd1         | Export data filtering by rating (False or True)                                | Completed | V1 exports all evaluations, filter for FALSE test cases                                                                 |
-| D5  | TDX      | tushar-fde-ai | manual input where claude code converts csv to yml file                        |           | Create a TDX command to upload csv to add test cases to eval.yaml; Currently only TR and Honda have ground truth in csv |
-| D6  | UI + BE  | gwtd1         | Query TDX project name/agent after user provides api key                       | Completed | V1 is hardcoded for TDX project name is tdx_default_gregwilliams                                                        |
-| D18 | UI       | gwtd1         | Change rating to Pass/Fail with thumbs up/down buttons                         | Completed | Replace numeric/star rating with binary Pass/Fail; Use thumbs up/down icons for manual evaluation input                 |
-| D19 | UI + BE  | gwtd1         | Display complete agent response in evaluation                                  | Completed | Agent response section must return and display the entire response, not truncated                                       |
-| D20 | UI + BE  | gwtd1         | Show TDX execution logs during test runs                                       |           | Stream TDX CLI logs to UI when user clicks "Run Test"; Show commands like `tdx use llm_project` and `tdx agent test`    |
-| D21 | Bug      | gwtd1         | Fix evaluation results storage and display                                     | Completed | Results show repeated "Round 1/1: Sending user input..." but don't store/display properly; Investigate data flow        |
-| D22 | Bug      | gwtd1         | Fix test.yml creation for agents without one                                   | Completed | Feature for creating test.yml for an agent that doesn't have one currently is broken                                    |
-| D23 | UI       | gwtd1         | Remove Evaluation Chat Button "view evaluation Conversation" from eval dropdown | Completed | Remove "Evaluation Chat" and "View evaluation conversation" both button and text from the evaluation dropdown menu      |
+| ID  | Category | Developer     | Requirement                                                                                 | Status    | Notes                                                                                                                                                      |
+|-----|----------|---------------|---------------------------------------------------------------------------------------------|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| D1  | UI + BE  | gwtd1         | Show conversation traces in evaluation                                                      | Completed | Expandable TracesSection shows user inputs, agent responses, and tool calls with full details                                                              |
+| D2  | TDX      | gwtd1         | LLM as a judge results in evaluation UI frame                                               | Completed | Currently only see the agent output, not the LLM-as-a-judge results                                                                                        |
+| D3  | UI       | gwtd1         | Make LLM as a judge results click-to-view                                                   | Completed | Dependency on D2; Currently they do not appear at all                                                                                                      |
+| D4  | UI       | gwtd1         | Export data filtering by rating (False or True)                                             | Completed | V1 exports all evaluations, filter for FALSE test cases                                                                                                    |
+| D5  | TDX      | tushar-fde-ai | manual input where claude code converts csv to yml file                                     |           | Create a TDX command to upload csv to add test cases to eval.yaml; Currently only TR and Honda have ground truth in csv                                    |
+| D6  | UI + BE  | gwtd1         | Query TDX project name/agent after user provides api key                                    | Completed | V1 is hardcoded for TDX project name is tdx_default_gregwilliams                                                                                           |
+| D18 | UI       | gwtd1         | Change rating to Pass/Fail with thumbs up/down buttons                                      | Completed | Replace numeric/star rating with binary Pass/Fail; Use thumbs up/down icons for manual evaluation input                                                    |
+| D19 | UI + BE  | gwtd1         | Display complete agent response in evaluation                                               | Completed | Agent response section must return and display the entire response, not truncated                                                                          |
+| D20 | UI + BE  | gwtd1         | Show TDX execution logs during test runs                                                    |           | Stream TDX CLI logs to UI when user clicks "Run Test"; Show commands like `tdx use llm_project` and `tdx agent test`                                       |
+| D21 | Bug      | gwtd1         | Fix evaluation results storage and display                                                  | Completed | Results show repeated "Round 1/1: Sending user input..." but don't store/display properly; Investigate data flow                                           |
+| D22 | Bug      | gwtd1         | Fix test.yml creation for agents without one                                                | Completed | Feature for creating test.yml for an agent that doesn't have one currently is broken                                                                       |
+| D23 | UI       | gwtd1         | Remove Evaluation Chat Button "view evaluation Conversation" from eval dropdown             | Completed | Remove "Evaluation Chat" and "View evaluation conversation" both button and text from the evaluation dropdown menu                                         |
+| D24 | UI       | gwtd1         | Fix bug for test cases status in left UI section as status not updating from manual eval    |           | When manual eval us completed by the user the test case in the left side panel does not update with pass or fail                                           |
+| D26 | UI       | gwtd1         | Traces are converted to mermaid code and mermaid chart shown to user instead of text traces |           | When manual human evaluator clicks into the conversation traces a mermaid chart of the flow of traces appears for the user to view instead of text traces  |
 
 ## Requirements Explanation
 ### D1: Show conversation traces in evaluation 
@@ -58,8 +60,37 @@ Bug: The feature for creating a test.yml file for an agent that doesn't currentl
 ### D23: Remove Evaluation Chat options from eval dropdown
 The user shall not see "Evaluation Chat" text and the "View evaluation conversation" button in the evaluation dropdown menu. Remove Evaluation Chat Button "view evaluation Conversation" from eval dropdown. Remove "Evaluation Chat" text and "View evaluation conversation" both button and text from the evaluation dropdown menu
 
-### D24: Replace conversation view with tdx llm history output
-The user shall see the full chat text from the `tdx llm history` call instead of the current Evaluation Chat/View conversation button. This uses Approach 3 from the D19 research (see `docs/D19-chat-history-research.md`).
+### D24: Fix test case status update from manual evaluation
+Bug: When a user completes a manual evaluation (Pass/Fail) for a test case, the test case status in the left side panel does not update to reflect the evaluation result. The UI should update the test case list item to show the pass/fail status immediately after the user submits their evaluation.
+
+### D26: Display traces as Mermaid flowchart
+The user shall see conversation traces visualized as a Mermaid flowchart instead of raw text. When the evaluator clicks to view conversation traces, the system shall:
+1. Parse the trace data (user input, tool calls, tool results, agent response)
+2. Convert the trace flow into Mermaid diagram code
+3. Render an interactive flowchart showing the sequence: User Input → Agent → Tool Calls → Tool Results → Final Response
+#### Example from animal-sounds agent
+Example trace flow:
+```mermaid
+sequenceDiagram                                                                                
+      participant User                                                                           
+      participant Agent                                                                          
+      participant Tool as call-test-tkb<br/>(TextKnowledgeBase)                                  
+                                                                                                 
+      User->>Agent: "Dog"                                                                        
+      Agent->>Tool: READ_TEXT<br/>functionArguments: {}                                          
+      Tool-->>Agent: "The cow goes 'Moooooo'..."<br/>status: OK                                  
+      Agent-->>User: "rrruuuffff"                                                                
+                                                                                                 
+  Or as a flowchart:                                                                             
+                                                                                                 
+  flowchart TD                                                                                   
+      A[👤 User Input<br/>"Dog"] --> B[🤖 Agent]                                                 
+      B --> C{Tool Call}                                                                         
+      C --> D[📚 call-test-tkb<br/>TextKnowledgeBase: test-tkb<br/>Function: READ_TEXT]          
+      D --> E[Tool Result<br/>"The cow goes 'Moooooo'..."]                                       
+      E --> F[🤖 Agent Processing]                                                               
+      F --> G[💬 Final Response<br/>"rrruuuffff"]
+```
 
 ## V3 Features 
                                                                                                                                                        
