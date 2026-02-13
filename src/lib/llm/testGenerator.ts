@@ -7,11 +7,14 @@ interface GeneratedTestCase {
 /**
  * Agent type detection based on name and prompt keywords.
  */
-type AgentType = 'math' | 'language' | 'fact-check' | 'sentiment' | 'code' | 'qa' | 'general';
+type AgentType = 'math' | 'language' | 'fact-check' | 'sentiment' | 'code' | 'qa' | 'animal' | 'general';
 
 function detectAgentType(agentName: string, agentPrompt: string): AgentType {
   const combined = `${agentName} ${agentPrompt}`.toLowerCase();
 
+  if (combined.includes('animal') || combined.includes('sound') && (combined.includes('woof') || combined.includes('meow'))) {
+    return 'animal';
+  }
   if (combined.includes('math') || combined.includes('calcul') || combined.includes('algebra') || combined.includes('equation')) {
     return 'math';
   }
@@ -149,6 +152,25 @@ function getTestCasesForType(agentType: AgentType): GeneratedTestCase[] {
           name: 'Answer how-to question',
           user_input: 'How do I boil an egg?',
           criteria: 'Agent provides clear step-by-step instructions',
+        },
+      ];
+
+    case 'animal':
+      return [
+        {
+          name: 'Dog sound',
+          user_input: 'Dog',
+          criteria: 'Agent responds with dog sound like Woof or Bark',
+        },
+        {
+          name: 'Cat sound',
+          user_input: 'Cat',
+          criteria: 'Agent responds with cat sound like Meow',
+        },
+        {
+          name: 'Non-animal input',
+          user_input: 'Table',
+          criteria: 'Agent indicates this is not an animal',
         },
       ];
 
