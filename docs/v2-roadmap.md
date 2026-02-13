@@ -9,7 +9,7 @@ The Agent Eval Tool is an app framework that uses manual human-in-the-loop evalu
 | D1  | UI + BE  | gwtd1         | Show conversation traces in evaluation                                         |           | Use API call to conversation or Look into using TDX to chat with agent and refactor to return traces                    |
 | D2  | TDX      | gwtd1         | LLM as a judge results in evaluation UI frame                                  | Completed | Currently only see the agent output, not the LLM-as-a-judge results                                                     |
 | D3  | UI       | gwtd1         | Make LLM as a judge results click-to-view                                      | Completed | Dependency on D2; Currently they do not appear at all                                                                   |
-| D4  | UI       | gwtd1             | Export data filtering by rating (False or True)                                | Completed | V1 exports all evaluations, filter for FALSE test cases                                                                 |
+| D4  | UI       | gwtd1         | Export data filtering by rating (False or True)                                | Completed | V1 exports all evaluations, filter for FALSE test cases                                                                 |
 | D5  | TDX      | tushar-fde-ai | manual input where claude code converts csv to yml file                        |           | Create a TDX command to upload csv to add test cases to eval.yaml; Currently only TR and Honda have ground truth in csv |
 | D6  | UI + BE  | gwtd1         | Query TDX project name/agent after user provides api key                       | Completed | V1 is hardcoded for TDX project name is tdx_default_gregwilliams                                                        |
 | D18 | UI       | gwtd1         | Change rating to Pass/Fail with thumbs up/down buttons                         | Completed | Replace numeric/star rating with binary Pass/Fail; Use thumbs up/down icons for manual evaluation input                 |
@@ -17,8 +17,7 @@ The Agent Eval Tool is an app framework that uses manual human-in-the-loop evalu
 | D20 | UI + BE  | gwtd1         | Show TDX execution logs during test runs                                       |           | Stream TDX CLI logs to UI when user clicks "Run Test"; Show commands like `tdx use llm_project` and `tdx agent test`    |
 | D21 | Bug      | gwtd1         | Fix evaluation results storage and display                                     | Completed | Results show repeated "Round 1/1: Sending user input..." but don't store/display properly; Investigate data flow        |
 | D22 | Bug      | gwtd1         | Fix test.yml creation for agents without one                                   | Completed | Feature for creating test.yml for an agent that doesn't have one currently is broken                                    |
-| D23 | UI       |               | Remove Evaluation Chat Button "view evaluation Conversation" from eval dropdown |           | Remove "Evaluation Chat" and "View evaluation conversation" both button and text from the evaluation dropdown menu      |
-| D24 | UI + BE  |               | Replace conversation view with tdx llm history output                          |           | Replace Evaluation Chat/View conversation button with full chat text from `tdx llm history` call                        |
+| D23 | UI       | gwtd1         | Remove Evaluation Chat Button "view evaluation Conversation" from eval dropdown | Completed | Remove "Evaluation Chat" and "View evaluation conversation" both button and text from the evaluation dropdown menu      |
 
 ## Requirements Explanation
 ### D1: Show conversation traces in evaluation 

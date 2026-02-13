@@ -154,10 +154,11 @@ export async function POST(request: NextRequest) {
     // Store test name mapping for LLM evaluation
     const testNameMap = new Map<string, string>();
 
-    // Fetch actual agent responses using tdx llm history for each test case
+    // Fetch actual agent responses and traces using tdx llm history for each test case
     // This retrieves the exact response from the test run conversation (not a new session)
-    console.log(`[API] Fetching actual agent responses for ${parsedCases.length} test cases via chat history`);
+    console.log(`[API] Fetching actual agent responses and traces for ${parsedCases.length} test cases via chat history`);
     const agentResponses = new Map<string, string>();
+    const testCaseTraces = new Map<string, string>(); // Store full history as JSON for traces
 
     for (let i = 0; i < parsedCases.length; i++) {
       const pc = parsedCases[i];
@@ -171,11 +172,19 @@ export async function POST(request: NextRequest) {
           try {
             const historyResult = await executeTdxLlmHistory(threadId);
             if (historyResult.exitCode === 0 && historyResult.entries.length > 0) {
-              // Find the agent response (entry with 'content' field, not 'input')
-              const agentEntry = historyResult.entries.find(e => e.content !== undefined);
-              if (agentEntry?.content) {
-                agentResponses.set(pc.name, agentEntry.content);
-                console.log(`[API] Got response for ${pc.name}: ${agentEntry.content.substring(0, 100)}...`);
+              // Store full history as traces (JSON string)
+              testCaseTraces.set(pc.name, JSON.stringify(historyResult.entries));
+
+              // Count tool calls for logging
+              const toolCalls = historyResult.entries.filter(e => e.tool !== undefined);
+              console.log(`[API] Got ${historyResult.entries.length} trace entries for ${pc.name} (${toolCalls.length} tool calls)`);
+
+              // Find the final agent response (last entry with 'content' field, not 'input' or 'tool')
+              const agentEntries = historyResult.entries.filter(e => e.content !== undefined && !e.tool);
+              const lastAgentEntry = agentEntries[agentEntries.length - 1];
+              if (lastAgentEntry?.content) {
+                agentResponses.set(pc.name, lastAgentEntry.content);
+                console.log(`[API] Got response for ${pc.name}: ${lastAgentEntry.content.substring(0, 100)}...`);
               } else {
                 console.warn(`[API] No agent response found in history for ${pc.name}`);
               }
@@ -209,7 +218,7 @@ export async function POST(request: NextRequest) {
           prompt,
           groundTruth,
           agentResponse,
-          traces: null,
+          traces: testCaseTraces.get(pc.name) || null,
           llmJudgeResult: null,
           chatLink: pc.chatLink || null,
         });

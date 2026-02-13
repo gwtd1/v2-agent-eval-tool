@@ -19,9 +19,24 @@ export interface TdxExecutorOptions {
 
 const DEFAULT_TIMEOUT = 120000; // 2 minutes
 
+export interface ToolCallInfo {
+  id?: string;
+  functionName: string;
+  functionArguments: string;
+  content: string;           // Tool result
+  status: string;            // "OK" or error
+  targetFunction?: string;   // e.g., "READ_TEXT"
+  toolTarget?: {
+    id?: string;
+    type: string;            // e.g., "TextKnowledgeBase"
+    name: string;
+  };
+}
+
 export interface ChatHistoryEntry {
   input?: string;   // User message
   content?: string; // Agent response
+  tool?: ToolCallInfo; // Tool call details
   at: string;       // ISO timestamp
 }
 

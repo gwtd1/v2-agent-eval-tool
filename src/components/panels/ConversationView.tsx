@@ -2,6 +2,7 @@
 
 import { TestCase } from '@/lib/types/test-case';
 import { LlmJudgeResults } from './LlmJudgeResults';
+import { TracesSection } from './TracesSection';
 
 interface ConversationViewProps {
   testCase: TestCase | null;
@@ -175,6 +176,9 @@ export function ConversationView({ testCase }: ConversationViewProps) {
             </div>
           )}
         </section>
+
+        {/* Conversation Traces Section */}
+        <TracesSection traces={testCase.traces} />
 
         {/* LLM Evaluation Section */}
         <section>
