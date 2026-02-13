@@ -14,11 +14,10 @@ The Agent Eval Tool is an app framework that uses manual human-in-the-loop evalu
 | D6  | UI + BE  | gwtd1         | Query TDX project name/agent after user provides api key                                    | Completed | V1 is hardcoded for TDX project name is tdx_default_gregwilliams                                                                                           |
 | D18 | UI       | gwtd1         | Change rating to Pass/Fail with thumbs up/down buttons                                      | Completed | Replace numeric/star rating with binary Pass/Fail; Use thumbs up/down icons for manual evaluation input                                                    |
 | D19 | UI + BE  | gwtd1         | Display complete agent response in evaluation                                               | Completed | Agent response section must return and display the entire response, not truncated                                                                          |
-| D20 | UI + BE  | gwtd1         | Show TDX execution logs during test runs                                                    |           | Stream TDX CLI logs to UI when user clicks "Run Test"; Show commands like `tdx use llm_project` and `tdx agent test`                                       |
 | D21 | Bug      | gwtd1         | Fix evaluation results storage and display                                                  | Completed | Results show repeated "Round 1/1: Sending user input..." but don't store/display properly; Investigate data flow                                           |
 | D22 | Bug      | gwtd1         | Fix test.yml creation for agents without one                                                | Completed | Feature for creating test.yml for an agent that doesn't have one currently is broken                                                                       |
 | D23 | UI       | gwtd1         | Remove Evaluation Chat Button "view evaluation Conversation" from eval dropdown             | Completed | Remove "Evaluation Chat" and "View evaluation conversation" both button and text from the evaluation dropdown menu                                         |
-| D26 | UI       | gwtd1         | Traces are converted to mermaid code and mermaid chart shown to user instead of text traces |           | When manual human evaluator clicks into the conversation traces a mermaid chart of the flow of traces appears for the user to view instead of text traces  |
+| D26 | UI       | gwtd1         | Traces are converted to mermaid code and mermaid chart shown to user instead of text traces | Completed | When manual human evaluator clicks into the conversation traces a mermaid chart of the flow of traces appears for the user to view instead of text traces  |
 
 ## Requirements Explanation
 ### D1: Show conversation traces in evaluation 
@@ -46,9 +45,6 @@ The user shall evaluate agent responses using a binary Pass/Fail rating system i
 The user shall see the complete agent response in the evaluation UI. Currently the UI shows "Response contains 'True'" instead of the actual agent response. This seems to be hardcoded. The UI needs to show the agents true response.
 
 The agent response section must return and render the entire response from the agent without truncation.
-
-### D20: Show TDX execution logs during test runs
-The user shall see real-time TDX execution logs in the UI when running tests. Currently, clicking "Run Test" provides no feedback while the agent executes. The UI shall stream or display TDX CLI output including commands like `[TDX] Executing: tdx use llm_project "project_name" && tdx agent test "agents/project/agent-name"`.
 
 ### D21: Fix evaluation results storage and display
 Bug: When running evaluations, results show repeated "Round 1/1: Sending user input..." messages but evaluation data is not being stored or displayed correctly in the UI. Investigation needed to trace data flow from TDX execution through storage to UI rendering.
@@ -87,22 +83,57 @@ sequenceDiagram
       E --> F[🤖 Agent Processing]                                                               
       F --> G[💬 Final Response<br/>"rrruuuffff"]
 ```
+## V3 Features
 
-## V3 Features 
-                                                                                                                                                       
-### V3-agent-eval-tool
-| ID  | Requirement                               | Notes                                                                                         |
-|-----|-------------------------------------------|-----------------------------------------------------------------------------------------------|
-| D7  | Manual test case creation                 | test cases can be written from the UI                                                         |
-| D8  | Cloud deployment                          | app is hosted in the cloud so anyone can use the tool with an api key                         |
-| D9  | Response truncation ("Show more")         | if agent test cases or responses are too long we can use "show more" button to hide text      |
-| D10 | upload input  from a doc                  | click a button to upload testcases and ground truth; Currently TR and Honda have ground truth |
-| D11 | LLM-based error clustering                | Post-MVP analytics to detect common issues with agents from eval notes                        |
-| D12 | Tagging/labeling system                   | Requires taxonomy design                                                                      |
-| D13 | Zod schema validation for API requests    | Complex API functionality - V1 uses manual validation with early returns                      |
-| D14 | Full service API layer architecture       | V1 keeps simple CRUD in route handlers                                                        |
-| D15 | Structured JSON logging for production    | V1 uses console logging for development                                                       |
-| D16 | Multi-reviewer support (reviewerId field) | V1 is single-user; field removed for simplicity                                               |
-| D17 | Pagination for Previous Test Runs         | The Previous Test Runs need a scroll or pagination on the intro screen                        |
-| D25 | Cloud storage for test.yml                | Store test.yml for each agent in the cloud so it can be called remotely                       |
+| ID  | Category | Developer | Requirement                                        | Status | Notes                                                                                              |
+|-----|----------|-----------|---------------------------------------------------|--------|----------------------------------------------------------------------------------------------------|
+| E1  | UI       | gwtd1     | Consistent click behaviors for expandable sections |        | Unify "Show" button and "^" toggle button designs across Conversation Traces and LLM Evaluation   |
+| E2  | UI       | gwtd1     | Consistent section heading design                  |        | Standardize Prompt, Agent Response, Traces, LLM Evaluation, Ground Truth headings with colors     |
+| E3  | UI       | gwtd1     | Human evaluation UI redesign                       |        | Modern facelift for 3-pane evaluation layout; research design options before implementation       |
+
+### V3 Requirements Explanation
+
+### E1: Consistent click behaviors for expandable sections
+The Conversation Traces section uses a "Show" button while the LLM Evaluation section uses a "^" toggle button. These perform the same expand/collapse action but have different designs. The UI should use a consistent button style, icon, and interaction pattern across all expandable sections in the application.
+
+**Acceptance Criteria:**
+- All expandable sections use the same button component
+- Consistent icon (chevron or similar) for expand/collapse state
+- Same hover, active, and disabled states across buttons
+
+### E2: Consistent section heading design
+The sections "Prompt", "Agent Response", "Conversation Traces", "LLM Evaluation", and "Ground Truth" in the middle evaluation pane have inconsistent designs. Some use a circle with a single letter (P, R, G), while others don't. The headings should have a unified design language with distinct colors to differentiate each section type.
+
+**Acceptance Criteria:**
+- Remove circular letter badges or apply consistently to all sections
+- Each section type has a unique, distinguishable color scheme
+- Typography (font size, weight, spacing) is consistent across all headings
+- Clear visual hierarchy between section headers and content
+
+### E3: Human evaluation UI redesign
+The three-pane human evaluation page needs a visual refresh to look modern yet simple. Before implementation, research and present 3-5 design reference links for review. The redesign should address color palette, typography, spacing, and overall visual consistency.
+
+**Acceptance Criteria:**
+- Research phase: Present design references for approval
+- Implementation phase: Update colors, fonts, and spacing
+- Maintain usability and accessibility standards
+- Responsive design considerations
+
+## V4 Features
+
+| ID  | Category | Developer | Requirement                            | Status | Notes                                                                                    |
+|-----|----------|-----------|----------------------------------------|--------|------------------------------------------------------------------------------------------|
+| D7  | UI + BE  | gwtd1     | Manual test case creation              |        | Create test cases directly from the UI without editing YAML files                        |
+| D8  | Infra    | gwtd1     | Cloud deployment                       |        | Host app in cloud so anyone can use with an API key; consider Vercel or AWS             |
+| D9  | UI       | gwtd1     | Response truncation with "Show more"   |        | Truncate long test cases/responses with expandable "Show more" button                    |
+| D10 | UI + BE  | gwtd1     | Upload test cases from document        |        | Upload button for testcases and ground truth files; support CSV, JSON formats           |
+| D11 | BE       | gwtd1     | LLM-based error clustering             |        | Post-MVP analytics to detect common agent issues from evaluation notes using LLM        |
+| D12 | UI + BE  | gwtd1     | Tagging/labeling system                |        | Tag test cases with labels for categorization; requires taxonomy design                 |
+| D13 | BE       | gwtd1     | Zod schema validation for API requests |        | Replace manual validation with Zod schemas for type-safe API request validation         |
+| D14 | BE       | gwtd1     | Full service API layer architecture    |        | Refactor from CRUD in route handlers to proper service layer with separation of concerns|
+| D15 | BE       | gwtd1     | Structured JSON logging for production |        | Replace console.log with structured JSON logging for production observability           |
+| D16 | BE       | gwtd1     | Multi-reviewer support                 |        | Add reviewerId field to support multiple evaluators per test run                        |
+| D17 | UI       | gwtd1     | Pagination for Previous Test Runs      |        | Add scroll or pagination to test runs list on intro screen                              |
+| D20 | UI + BE  | gwtd1     | Show TDX execution logs during tests   |        | Stream TDX CLI logs to UI when running tests; show real-time execution feedback         |
+| D25 | Infra    | gwtd1     | Cloud storage for test.yml             |        | Store test.yml for each agent in cloud storage for remote access                        |
 
