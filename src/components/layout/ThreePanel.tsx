@@ -8,14 +8,17 @@ interface ThreePanelProps {
 
 export function ThreePanel({ left, center, right }: ThreePanelProps) {
   return (
-    <div className="flex h-screen">
-      <div className="w-[280px] border-r border-gray-200 overflow-y-auto bg-gray-50">
+    <div className="flex h-screen bg-gray-100">
+      {/* Left Panel - White background */}
+      <div className="w-72 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
         {left}
       </div>
-      <div className="flex-1 overflow-y-auto">
+      {/* Center Panel - Gray background */}
+      <div className="flex-1 overflow-y-auto bg-gray-50">
         {center}
       </div>
-      <div className="w-[320px] border-l border-gray-200 overflow-y-auto bg-gray-50">
+      {/* Right Panel - White background */}
+      <div className="w-80 bg-white border-l border-gray-200 flex flex-col overflow-hidden">
         {right}
       </div>
     </div>

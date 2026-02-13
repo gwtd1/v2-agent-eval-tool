@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/Button';
-import { RadioGroup } from '@/components/ui/RadioGroup';
 import { Textarea } from '@/components/ui/Textarea';
 import { Evaluation } from '@/lib/types/evaluation';
 
@@ -23,13 +22,26 @@ export interface EvaluationPanelHandle {
   focusNotes: () => void;
 }
 
-const RATING_OPTIONS = [
-  { value: 'pass', label: 'Pass' },
-  { value: 'fail', label: 'Fail' },
-];
-
 // Debounce delay for auto-saving notes
 const NOTES_SAVE_DELAY = 500;
+
+// Thumbs Up SVG Icon
+function ThumbsUpIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 20 20">
+      <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+    </svg>
+  );
+}
+
+// Thumbs Down SVG Icon
+function ThumbsDownIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 20 20">
+      <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
+    </svg>
+  );
+}
 
 export const EvaluationPanel = forwardRef<EvaluationPanelHandle, EvaluationPanelProps>(function EvaluationPanel({
   evaluation,
@@ -181,27 +193,42 @@ export const EvaluationPanel = forwardRef<EvaluationPanelHandle, EvaluationPanel
           {(() => {
             // Handle both new pass/fail and legacy true/false values
             const rating = evaluation.rating as string | null;
-            const normalizedValue = rating === 'true' ? 'pass' : rating === 'false' ? 'fail' : rating;
             const isPass = rating === 'pass' || rating === 'true';
+            const isFail = rating === 'fail' || rating === 'false';
+
             return (
               <>
-                <RadioGroup
-                  name="rating"
-                  options={RATING_OPTIONS}
-                  value={normalizedValue}
-                  onChange={handleRating}
-                />
+                <div className="flex gap-3">
+                  {/* Pass Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleRating('pass')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 font-medium transition-colors ${
+                      isPass
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600'
+                    }`}
+                  >
+                    <ThumbsUpIcon className="w-5 h-5" />
+                    Pass
+                  </button>
+                  {/* Fail Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleRating('fail')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 font-medium transition-colors ${
+                      isFail
+                        ? 'border-red-500 bg-red-50 text-red-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-red-300 hover:bg-red-50 hover:text-red-600'
+                    }`}
+                  >
+                    <ThumbsDownIcon className="w-5 h-5" />
+                    Fail
+                  </button>
+                </div>
                 {ratingError && (
                   <p className="mt-2 text-xs text-red-600 font-medium">
                     {ratingError}
-                  </p>
-                )}
-                {rating && !ratingError && (
-                  <p className="mt-2 text-xs text-gray-500">
-                    Rated as{' '}
-                    <span className={`font-medium ${isPass ? 'text-green-600' : 'text-red-600'}`}>
-                      {isPass ? 'Pass' : 'Fail'}
-                    </span>
                   </p>
                 )}
               </>
@@ -273,22 +300,30 @@ export const EvaluationPanel = forwardRef<EvaluationPanelHandle, EvaluationPanel
       {/* Navigation Footer */}
       <div className="p-4 border-t border-gray-200 bg-white">
         <div className="flex gap-3">
-          <Button
-            variant="secondary"
+          <button
+            type="button"
             onClick={handlePrev}
             disabled={!hasPrev}
-            className="flex-1"
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              hasPrev
+                ? 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+                : 'text-gray-400 bg-gray-50 cursor-not-allowed'
+            }`}
           >
-            ← Previous
-          </Button>
-          <Button
-            variant="primary"
+            Previous
+          </button>
+          <button
+            type="button"
             onClick={handleNext}
             disabled={!hasNext}
-            className="flex-1"
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              hasNext
+                ? 'text-white bg-indigo-600 hover:bg-indigo-700'
+                : 'text-gray-400 bg-gray-200 cursor-not-allowed'
+            }`}
           >
-            Next →
-          </Button>
+            Next
+          </button>
         </div>
         {onExportCSV && hasEvaluations && (
           <div className="mt-3 pt-3 border-t border-gray-100">

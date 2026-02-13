@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V3 Prototype - Notion Style</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* Notion-style subtle interactions */
+    .notion-hover {
+      transition: background-color 0.1s ease;
+    }
+    .notion-hover:hover {
+      background-color: rgba(55, 53, 47, 0.04);
+    }
+
+    /* Soft shadows instead of borders */
+    .notion-card {
+      box-shadow: rgba(15, 15, 15, 0.05) 0px 0px 0px 1px, rgba(15, 15, 15, 0.1) 0px 3px 6px, rgba(15, 15, 15, 0.2) 0px 9px 24px;
+    }
+
+    .notion-card-subtle {
+      box-shadow: rgba(15, 15, 15, 0.04) 0px 0px 0px 1px;
+    }
+
+    /* Expandable content */
+    .expandable-content {
+      transition: max-height 0.15s ease-out, opacity 0.15s ease-out;
+      overflow: hidden;
+    }
+    .expandable-content.collapsed {
+      max-height: 0;
+      opacity: 0;
+    }
+    .expandable-content.expanded {
+      max-height: 1000px;
+      opacity: 1;
+    }
+
+    .chevron {
+      transition: transform 0.15s ease;
+    }
+    .chevron.rotated {
+      transform: rotate(90deg);
+    }
+
+    /* Notion-style text colors */
+    .text-notion {
+      color: rgb(55, 53, 47);
+    }
+    .text-notion-secondary {
+      color: rgba(55, 53, 47, 0.65);
+    }
+    .text-notion-tertiary {
+      color: rgba(55, 53, 47, 0.45);
+    }
+
+    /* Notion tag colors */
+    .tag-default { background: rgba(206, 205, 202, 0.5); color: rgb(55, 53, 47); }
+    .tag-green { background: rgba(211, 229, 214, 1); color: rgb(15, 123, 108); }
+    .tag-red { background: rgba(255, 226, 221, 1); color: rgb(212, 76, 71); }
+    .tag-blue { background: rgba(211, 229, 239, 1); color: rgb(24, 51, 71); }
+    .tag-purple { background: rgba(232, 222, 238, 1); color: rgb(105, 64, 165); }
+    .tag-yellow { background: rgba(251, 243, 219, 1); color: rgb(64, 44, 27); }
+  </style>
+</head>
+<body class="bg-white min-h-screen">
+
+  <!-- Notion-style minimal header -->
+  <header class="px-4 py-3 border-b" style="border-color: rgba(55, 53, 47, 0.09);">
+    <div class="max-w-screen-2xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-notion-secondary text-sm">Agent Evaluation</span>
+        <span class="text-notion-tertiary">/</span>
+        <span class="text-notion text-sm font-medium">math-tutor</span>
+      </div>
+      <button class="px-3 py-1.5 text-sm text-notion-secondary notion-hover rounded">
+        Export
+      </button>
+    </div>
+  </header>
+
+  <!-- Three-Pane Layout -->
+  <div class="flex h-[calc(100vh-49px)]">
+
+    <!-- Left Panel: Test Case List -->
+    <div class="w-64 border-r flex flex-col" style="border-color: rgba(55, 53, 47, 0.09);">
+      <!-- Header -->
+      <div class="px-3 py-2">
+        <h2 class="text-xs font-medium text-notion-secondary uppercase tracking-wider">Test Cases</h2>
+      </div>
+
+      <!-- Filter as inline text -->
+      <div class="px-3 py-1 flex items-center gap-3 text-xs">
+        <span class="text-notion font-medium cursor-pointer">All</span>
+        <span class="text-notion-tertiary cursor-pointer hover:text-notion-secondary">Pending</span>
+        <span class="text-notion-tertiary cursor-pointer hover:text-notion-secondary">Done</span>
+      </div>
+
+      <!-- Test Case Items - Notion style minimal list -->
+      <div class="flex-1 overflow-y-auto px-1 py-2">
+        <!-- Selected Item -->
+        <div class="px-2 py-1.5 rounded notion-hover cursor-pointer" style="background: rgba(55, 53, 47, 0.04);">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-notion truncate flex-1">What is 2 + 2?</span>
+            <span class="tag-green text-xs px-1.5 py-0.5 rounded ml-2">Pass</span>
+          </div>
+        </div>
+
+        <div class="px-2 py-1.5 rounded notion-hover cursor-pointer">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-notion truncate flex-1">Calculate the derivative...</span>
+            <span class="tag-red text-xs px-1.5 py-0.5 rounded ml-2">Fail</span>
+          </div>
+        </div>
+
+        <div class="px-2 py-1.5 rounded notion-hover cursor-pointer">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-notion truncate flex-1">Solve for x: 3x + 5 = 20</span>
+            <span class="tag-default text-xs px-1.5 py-0.5 rounded ml-2">Pending</span>
+          </div>
+        </div>
+
+        <div class="px-2 py-1.5 rounded notion-hover cursor-pointer">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-notion truncate flex-1">Square root of 144?</span>
+            <span class="tag-green text-xs px-1.5 py-0.5 rounded ml-2">Pass</span>
+          </div>
+        </div>
+
+        <div class="px-2 py-1.5 rounded notion-hover cursor-pointer">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-notion truncate flex-1">Pythagorean theorem</span>
+            <span class="tag-default text-xs px-1.5 py-0.5 rounded ml-2">Pending</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress - Notion style -->
+      <div class="px-3 py-3 border-t" style="border-color: rgba(55, 53, 47, 0.09);">
+        <div class="flex items-center justify-between text-xs text-notion-secondary mb-1.5">
+          <span>Progress</span>
+          <span>3 of 5</span>
+        </div>
+        <div class="h-1 rounded-full overflow-hidden" style="background: rgba(55, 53, 47, 0.08);">
+          <div class="h-full rounded-full" style="width: 60%; background: rgb(46, 170, 220);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle Panel: Conversation View -->
+    <div class="flex-1 overflow-y-auto" style="background: rgb(251, 251, 250);">
+      <div class="max-w-3xl mx-auto py-8 px-6 space-y-6">
+
+        <!-- Prompt Section - Notion callout style -->
+        <section>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-lg">💬</span>
+            <span class="text-xs font-medium text-notion-secondary uppercase tracking-wider">Prompt</span>
+          </div>
+          <div class="rounded-md p-4" style="background: rgba(211, 229, 239, 0.3);">
+            <p class="text-sm text-notion">What is 2 + 2?</p>
+          </div>
+        </section>
+
+        <!-- Agent Response Section -->
+        <section>
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">🤖</span>
+              <span class="text-xs font-medium text-notion-secondary uppercase tracking-wider">Agent Response</span>
+            </div>
+            <a href="#" class="text-xs text-notion-secondary hover:text-notion">View conversation →</a>
+          </div>
+          <div class="rounded-md p-4" style="background: rgba(211, 229, 214, 0.3);">
+            <p class="text-sm text-notion">The answer to 2 + 2 is <strong>4</strong>.</p>
+            <p class="text-sm text-notion mt-2">This is a basic addition problem. When you add 2 and 2 together, you get 4.</p>
+          </div>
+        </section>
+
+        <!-- Conversation Traces - Notion toggle style -->
+        <section>
+          <div class="flex items-center gap-2 cursor-pointer notion-hover rounded p-1 -ml-1" onclick="toggleSection('traces')">
+            <svg id="traces-chevron" class="w-4 h-4 chevron text-notion-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="text-lg">🔍</span>
+            <span class="text-xs font-medium text-notion-secondary uppercase tracking-wider">Conversation Traces</span>
+            <span class="tag-default text-xs px-1.5 py-0.5 rounded ml-1">2</span>
+          </div>
+          <div id="traces-content" class="expandable-content collapsed ml-6">
+            <div class="rounded-md p-4 mt-2" style="background: rgba(232, 222, 238, 0.3);">
+              <div class="flex items-center gap-3">
+                <div class="tag-blue text-xs px-2 py-1 rounded">Input</div>
+                <span class="text-notion-tertiary">→</span>
+                <div class="tag-purple text-xs px-2 py-1 rounded">Agent</div>
+                <span class="text-notion-tertiary">→</span>
+                <div class="tag-green text-xs px-2 py-1 rounded">Response</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- LLM Evaluation - Notion toggle style -->
+        <section>
+          <div class="flex items-center gap-2 cursor-pointer notion-hover rounded p-1 -ml-1" onclick="toggleSection('llm')">
+            <svg id="llm-chevron" class="w-4 h-4 chevron text-notion-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="text-lg">⚖️</span>
+            <span class="text-xs font-medium text-notion-secondary uppercase tracking-wider">LLM Evaluation</span>
+            <span class="tag-green text-xs px-1.5 py-0.5 rounded ml-1">Pass</span>
+          </div>
+          <div id="llm-content" class="expandable-content collapsed ml-6">
+            <div class="rounded-md p-4 mt-2" style="background: rgba(232, 222, 238, 0.3);">
+              <div class="mb-3">
+                <span class="text-xs text-notion-secondary">Reasoning</span>
+                <p class="text-sm text-notion mt-1">The agent correctly answered that 2 + 2 = 4. The response is accurate, clear, and provides a brief explanation suitable for educational purposes.</p>
+              </div>
+              <p class="text-xs text-notion-tertiary">Evaluated Feb 13, 2026</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Ground Truth Section -->
+        <section>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-lg">✅</span>
+            <span class="text-xs font-medium text-notion-secondary uppercase tracking-wider">Ground Truth</span>
+          </div>
+          <div class="rounded-md p-4" style="background: rgba(251, 243, 219, 0.5);">
+            <p class="text-sm text-notion">The answer should be 4. The agent should demonstrate understanding of basic addition.</p>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- Right Panel: Evaluation Controls -->
+    <div class="w-72 border-l flex flex-col" style="border-color: rgba(55, 53, 47, 0.09);">
+      <!-- Header -->
+      <div class="px-4 py-3 border-b" style="border-color: rgba(55, 53, 47, 0.09);">
+        <h2 class="text-sm font-medium text-notion">Evaluation</h2>
+        <p class="text-xs text-notion-tertiary mt-0.5">Test 1 of 5</p>
+      </div>
+
+      <!-- Rating Section - Notion button style -->
+      <div class="p-4 border-b" style="border-color: rgba(55, 53, 47, 0.09);">
+        <label class="block text-xs font-medium text-notion-secondary mb-3">Rating</label>
+        <div class="flex gap-2">
+          <button class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded text-sm font-medium transition-colors" style="background: rgba(211, 229, 214, 1); color: rgb(15, 123, 108);">
+            <span>👍</span> Pass
+          </button>
+          <button class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded text-sm font-medium notion-hover text-notion-secondary">
+            <span>👎</span> Fail
+          </button>
+        </div>
+      </div>
+
+      <!-- Notes Section -->
+      <div class="flex-1 p-4 flex flex-col">
+        <label class="block text-xs font-medium text-notion-secondary mb-2">Notes</label>
+        <textarea
+          class="flex-1 w-full px-3 py-2 text-sm text-notion rounded resize-none focus:outline-none"
+          style="background: rgba(55, 53, 47, 0.04); border: none;"
+          placeholder="Add notes..."
+        >The agent provided a correct and clear explanation.</textarea>
+        <p class="text-xs text-notion-tertiary mt-2">Saved</p>
+      </div>
+
+      <!-- Navigation - Notion style -->
+      <div class="p-4 border-t flex gap-2" style="border-color: rgba(55, 53, 47, 0.09);">
+        <button class="flex-1 px-3 py-2 text-sm text-notion-secondary notion-hover rounded">
+          ← Previous
+        </button>
+        <button class="flex-1 px-3 py-2 text-sm text-white rounded" style="background: rgb(46, 170, 220);">
+          Next →
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function toggleSection(sectionId) {
+      const content = document.getElementById(sectionId + '-content');
+      const chevron = document.getElementById(sectionId + '-chevron');
+
+      if (content.classList.contains('collapsed')) {
+        content.classList.remove('collapsed');
+        content.classList.add('expanded');
+        chevron.classList.add('rotated');
+      } else {
+        content.classList.remove('expanded');
+        content.classList.add('collapsed');
+        chevron.classList.remove('rotated');
+      }
+    }
+  </script>
+
+</body>
+</html>
