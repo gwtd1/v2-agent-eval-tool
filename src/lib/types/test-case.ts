@@ -1,3 +1,5 @@
+import type { LlmJudgeResult } from '../llm/types';
+
 export interface TestCase {
   id: string;
   testRunId: string;
@@ -5,6 +7,8 @@ export interface TestCase {
   groundTruth: string | null;
   agentResponse: string | null;
   traces: string | null; // JSON string, deferred to V2
+  llmJudgeResult: LlmJudgeResult | null;
+  chatLink: string | null; // URL to view full conversation in TD Console
   createdAt: string;
 }
 

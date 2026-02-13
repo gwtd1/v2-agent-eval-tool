@@ -249,8 +249,9 @@ function parseTextTestOutput(output: string): TestResult[] {
 
 /**
  * Parse test cases from TDX CLI output for database storage
- * Handles the TDX CLI output format:
- *   Test 1/8: Test Name
+ * Handles multiple TDX CLI output formats:
+ *   Format 1: "Test 1/8: Test Name"
+ *   Format 2: "Running test: Test Name"
  *     Round 1/1... ✓ (2.1s)
  *     Evaluating... ✓ (6.7s)
  *   ✓ PASS: Evaluation reasoning...
@@ -281,12 +282,23 @@ export function extractTestCasesFromOutput(output: string): ParsedTestCase[] {
   };
 
   for (const line of lines) {
-    // Detect new test case: "Test 1/8: Test Name" or "Test 2/8: Another Test"
+    // Detect new test case - Format 1: "Test 1/8: Test Name"
     const testMatch = line.match(/^Test\s+(\d+\/\d+):\s*(.+?)$/i);
     if (testMatch) {
       saveCase();
       currentCase = {
         name: testMatch[2].trim(),
+        status: 'pass', // Default, will be updated by PASS/FAIL line
+      };
+      continue;
+    }
+
+    // Detect new test case - Format 2: "Running test: Test Name"
+    const runningTestMatch = line.match(/^Running test:\s*(.+?)$/i);
+    if (runningTestMatch) {
+      saveCase();
+      currentCase = {
+        name: runningTestMatch[1].trim(),
         status: 'pass', // Default, will be updated by PASS/FAIL line
       };
       continue;

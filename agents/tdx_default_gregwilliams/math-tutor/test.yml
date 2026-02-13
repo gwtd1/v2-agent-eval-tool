@@ -1,0 +1,14 @@
+# Test cases for math-tutor
+# Auto-generated based on agent prompt
+# Documentation: https://tdx.treasuredata.com/commands/agent.html
+
+tests:
+  - name: "Solve linear equation"
+    user_input: "Solve for x: 2x + 5 = 15"
+    criteria: "Agent provides correct solution (x = 5) with step-by-step explanation"
+  - name: "Calculate derivative"
+    user_input: "What is the derivative of x^2 + 3x?"
+    criteria: "Agent provides correct answer (2x + 3) with explanation of power rule"
+  - name: "Word problem"
+    user_input: "A rectangle has length 8cm and width 5cm. What is its area and perimeter?"
+    criteria: "Agent calculates area (40 sq cm) and perimeter (26 cm) correctly"

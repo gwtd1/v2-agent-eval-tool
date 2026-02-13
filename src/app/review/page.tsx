@@ -24,6 +24,7 @@ function ReviewContentInner() {
     selectTestCase,
     updateRating,
     updateNotes,
+    toggleLlmResultsVisibility,
   } = useEvaluation();
 
   useEffect(() => {
@@ -54,7 +55,8 @@ function ReviewContentInner() {
     }
   }, [selectedIndex, evaluations, selectTestCase]);
 
-  const handleRate = useCallback((rating: 'true' | 'false') => {
+  const handleRate = useCallback((rating: 'pass' | 'fail') => {
+    console.log(`[ReviewPage] handleRate called: ${rating}, selectedEvaluation:`, selectedEvaluation?.evaluation.id);
     if (selectedEvaluation) {
       updateRating(selectedEvaluation.evaluation.id, rating);
     }
@@ -76,13 +78,20 @@ function ReviewContentInner() {
     evaluationPanelRef.current?.focusNotes();
   }, []);
 
+  const handleToggleLlmResults = useCallback(() => {
+    if (selectedTestCaseId) {
+      toggleLlmResultsVisibility(selectedTestCaseId);
+    }
+  }, [selectedTestCaseId, toggleLlmResultsVisibility]);
+
   // Keyboard navigation
   useKeyboardNavigation({
     onPrev: handlePrev,
     onNext: handleNext,
-    onRateTrue: () => handleRate('true'),
-    onRateFalse: () => handleRate('false'),
+    onRatePass: () => handleRate('pass'),
+    onRateFail: () => handleRate('fail'),
     onFocusNotes: handleFocusNotes,
+    onToggleLlmResults: handleToggleLlmResults,
     enabled: !isLoading && evaluations.length > 0,
   });
 

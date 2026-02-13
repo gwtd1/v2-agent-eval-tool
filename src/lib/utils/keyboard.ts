@@ -5,9 +5,10 @@ import { useEffect, useCallback } from 'react';
 interface UseKeyboardNavigationOptions {
   onPrev: () => void;
   onNext: () => void;
-  onRateTrue?: () => void;
-  onRateFalse?: () => void;
+  onRatePass?: () => void;
+  onRateFail?: () => void;
   onFocusNotes?: () => void;
+  onToggleLlmResults?: () => void;
   enabled?: boolean;
 }
 
@@ -17,17 +18,19 @@ interface UseKeyboardNavigationOptions {
  * Shortcuts:
  * - ArrowLeft / j: Previous test case
  * - ArrowRight / k: Next test case
- * - t / g: Rate as True (Good)
- * - f / b: Rate as False (Bad)
+ * - t / g: Rate as Pass (Good)
+ * - f / b: Rate as Fail (Bad)
  * - n: Focus notes textarea
+ * - l: Toggle LLM evaluation visibility
  * - Escape: Blur active element (return to navigation mode)
  */
 export function useKeyboardNavigation({
   onPrev,
   onNext,
-  onRateTrue,
-  onRateFalse,
+  onRatePass,
+  onRateFail,
   onFocusNotes,
+  onToggleLlmResults,
   enabled = true,
 }: UseKeyboardNavigationOptions) {
   const handleKeyDown = useCallback(
@@ -70,16 +73,16 @@ export function useKeyboardNavigation({
           break;
         case 't':
         case 'g':
-          if (onRateTrue) {
+          if (onRatePass) {
             event.preventDefault();
-            onRateTrue();
+            onRatePass();
           }
           break;
         case 'f':
         case 'b':
-          if (onRateFalse) {
+          if (onRateFail) {
             event.preventDefault();
-            onRateFalse();
+            onRateFail();
           }
           break;
         case 'n':
@@ -88,9 +91,15 @@ export function useKeyboardNavigation({
             onFocusNotes();
           }
           break;
+        case 'l':
+          if (onToggleLlmResults) {
+            event.preventDefault();
+            onToggleLlmResults();
+          }
+          break;
       }
     },
-    [enabled, onPrev, onNext, onRateTrue, onRateFalse, onFocusNotes]
+    [enabled, onPrev, onNext, onRatePass, onRateFail, onFocusNotes, onToggleLlmResults]
   );
 
   useEffect(() => {

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
   if (ratingFilter) {
     if (ratingFilter === 'unrated') {
       results = results.filter((r) => r.evaluation.rating === null);
-    } else if (ratingFilter === 'true' || ratingFilter === 'false') {
+    } else if (ratingFilter === 'pass' || ratingFilter === 'fail') {
       results = results.filter((r) => r.evaluation.rating === ratingFilter);
     }
   }
@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
     count: results.length,
     summary: {
       total: evaluations.length,
-      true: evaluations.filter((e) => e.rating === 'true').length,
-      false: evaluations.filter((e) => e.rating === 'false').length,
+      pass: evaluations.filter((e) => e.rating === 'pass').length,
+      fail: evaluations.filter((e) => e.rating === 'fail').length,
       unrated: evaluations.filter((e) => e.rating === null).length,
     },
   });

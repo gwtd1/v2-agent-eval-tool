@@ -16,4 +16,7 @@ export interface TestResponse {
   status: 'completed' | 'failed';
   testCaseCount?: number;
   error?: string;
+  rawOutput?: string;
+  needsTestFile?: boolean;
+  autoRecoveryAttempted?: boolean;
 }

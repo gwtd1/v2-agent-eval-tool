@@ -1,0 +1,8 @@
+# Test cases for sentiment-analyzer
+# Add your test cases below
+# Documentation: https://tdx.treasuredata.com/commands/agent.html
+
+tests:
+  - name: "Basic test"
+    user_input: "Hello"
+    criteria: "Agent responds appropriately"

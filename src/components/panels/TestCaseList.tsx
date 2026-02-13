@@ -72,7 +72,11 @@ export function TestCaseList({ evaluations, selectedId, onSelect }: TestCaseList
       <div className="flex-1 overflow-y-auto">
         {filteredEvaluations.map(({ evaluation, testCase }) => {
           const isSelected = evaluation.testCaseId === selectedId;
-          const badgeVariant = evaluation.rating === null ? 'pending' : evaluation.rating;
+          // Map rating to badge variant (handle both new pass/fail and legacy true/false)
+          const rating = evaluation.rating as string | null;
+          const isPass = rating === 'pass' || rating === 'true';
+          const badgeVariant: 'pending' | 'pass' | 'fail' = rating === null ? 'pending' : isPass ? 'pass' : 'fail';
+          const badgeLabel = rating === null ? 'Pending' : isPass ? 'Pass' : 'Fail';
           const displayIndex = evaluations.findIndex(
             (e) => e.evaluation.testCaseId === evaluation.testCaseId
           );
@@ -96,11 +100,7 @@ export function TestCaseList({ evaluations, selectedId, onSelect }: TestCaseList
                   </p>
                 </div>
                 <Badge variant={badgeVariant}>
-                  {evaluation.rating === 'true'
-                    ? 'True'
-                    : evaluation.rating === 'false'
-                    ? 'False'
-                    : 'Pending'}
+                  {badgeLabel}
                 </Badge>
               </div>
             </button>

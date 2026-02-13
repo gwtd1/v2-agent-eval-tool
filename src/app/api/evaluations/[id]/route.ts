@@ -46,9 +46,9 @@ async function handleUpdate(
 
   // Validate rating if provided
   if (body.rating !== undefined) {
-    if (body.rating !== null && body.rating !== 'true' && body.rating !== 'false') {
+    if (body.rating !== null && body.rating !== 'pass' && body.rating !== 'fail') {
       return NextResponse.json(
-        { error: 'rating must be "true", "false", or null' },
+        { error: 'rating must be "pass", "fail", or null' },
         { status: 400 }
       );
     }
@@ -72,13 +72,13 @@ async function handleUpdate(
     }
   }
 
-  // Validate "false" rating requires notes (V1 rule)
-  if (body.rating === 'false') {
+  // Validate "fail" rating requires notes (V1 rule)
+  if (body.rating === 'fail') {
     const existingEval = getEvaluation(id);
     const notes = body.notes ?? existingEval?.notes ?? '';
     if (!notes.trim()) {
       return NextResponse.json(
-        { error: 'Notes are required when rating is "false"' },
+        { error: 'Notes are required when rating is "fail"' },
         { status: 400 }
       );
     }
@@ -86,7 +86,7 @@ async function handleUpdate(
 
   // Update the evaluation
   const updated = updateEvaluation(id, {
-    rating: body.rating as 'true' | 'false' | null | undefined,
+    rating: body.rating as 'pass' | 'fail' | null | undefined,
     notes: body.notes,
     durationMs: body.durationMs,
   });

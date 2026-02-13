@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS test_cases (
   ground_truth TEXT,
   agent_response TEXT,
   traces TEXT,
+  llm_judge_result TEXT,
+  chat_link TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (test_run_id) REFERENCES test_runs(id) ON DELETE CASCADE
 );
@@ -23,7 +25,7 @@ CREATE TABLE IF NOT EXISTS test_cases (
 CREATE TABLE IF NOT EXISTS evaluations (
   id TEXT PRIMARY KEY,
   test_case_id TEXT NOT NULL,
-  rating TEXT CHECK (rating IN ('true', 'false') OR rating IS NULL),
+  rating TEXT CHECK (rating IN ('pass', 'fail') OR rating IS NULL),
   notes TEXT DEFAULT '',
   duration_ms INTEGER,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,

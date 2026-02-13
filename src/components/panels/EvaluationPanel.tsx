@@ -8,7 +8,7 @@ import { Evaluation } from '@/lib/types/evaluation';
 
 interface EvaluationPanelProps {
   evaluation: Evaluation | null;
-  onRate: (rating: 'true' | 'false') => void;
+  onRate: (rating: 'pass' | 'fail') => void;
   onNotesChange: (notes: string) => void;
   onPrev: () => void;
   onNext: () => void;
@@ -24,8 +24,8 @@ export interface EvaluationPanelHandle {
 }
 
 const RATING_OPTIONS = [
-  { value: 'true', label: 'True' },
-  { value: 'false', label: 'False' },
+  { value: 'pass', label: 'Pass' },
+  { value: 'fail', label: 'Fail' },
 ];
 
 // Debounce delay for auto-saving notes
@@ -45,12 +45,14 @@ export const EvaluationPanel = forwardRef<EvaluationPanelHandle, EvaluationPanel
   // Local state for notes to enable immediate UI updates
   const [localNotes, setLocalNotes] = useState(evaluation?.notes || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [ratingError, setRatingError] = useState<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Sync local notes when evaluation changes
+  // Sync local notes when evaluation changes and clear errors
   useEffect(() => {
     setLocalNotes(evaluation?.notes || '');
+    setRatingError(null);
   }, [evaluation?.id, evaluation?.notes]);
 
   // Cleanup timeout on unmount
@@ -123,6 +125,20 @@ export const EvaluationPanel = forwardRef<EvaluationPanelHandle, EvaluationPanel
     onNext();
   }, [flushPendingSave, onNext]);
 
+  // Handle rating with validation - "fail" requires notes
+  const handleRating = useCallback((value: string) => {
+    console.log(`[EvaluationPanel] handleRating: ${value}, notes: "${localNotes}"`);
+    setRatingError(null);
+
+    if (value === 'fail' && !localNotes.trim()) {
+      setRatingError('Notes are required when marking as Fail');
+      textareaRef.current?.focus();
+      return;
+    }
+
+    onRate(value as 'pass' | 'fail');
+  }, [localNotes, onRate]);
+
   if (!evaluation) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -162,24 +178,35 @@ export const EvaluationPanel = forwardRef<EvaluationPanelHandle, EvaluationPanel
           <label className="block text-sm font-medium text-gray-700 mb-3">
             Rating
           </label>
-          <RadioGroup
-            name="rating"
-            options={RATING_OPTIONS}
-            value={evaluation.rating}
-            onChange={(value) => onRate(value as 'true' | 'false')}
-          />
-          {evaluation.rating && (
-            <p className="mt-2 text-xs text-gray-500">
-              Rated as{' '}
-              <span
-                className={`font-medium ${
-                  evaluation.rating === 'true' ? 'text-green-600' : 'text-red-600'
-                }`}
-              >
-                {evaluation.rating === 'true' ? 'True' : 'False'}
-              </span>
-            </p>
-          )}
+          {(() => {
+            // Handle both new pass/fail and legacy true/false values
+            const rating = evaluation.rating as string | null;
+            const normalizedValue = rating === 'true' ? 'pass' : rating === 'false' ? 'fail' : rating;
+            const isPass = rating === 'pass' || rating === 'true';
+            return (
+              <>
+                <RadioGroup
+                  name="rating"
+                  options={RATING_OPTIONS}
+                  value={normalizedValue}
+                  onChange={handleRating}
+                />
+                {ratingError && (
+                  <p className="mt-2 text-xs text-red-600 font-medium">
+                    {ratingError}
+                  </p>
+                )}
+                {rating && !ratingError && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Rated as{' '}
+                    <span className={`font-medium ${isPass ? 'text-green-600' : 'text-red-600'}`}>
+                      {isPass ? 'Pass' : 'Fail'}
+                    </span>
+                  </p>
+                )}
+              </>
+            );
+          })()}
         </section>
 
         {/* Notes Section */}
@@ -224,11 +251,11 @@ export const EvaluationPanel = forwardRef<EvaluationPanelHandle, EvaluationPanel
             <span className="mx-2">|</span>
             <span className="inline-flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 font-mono">T</kbd>
-              <span className="mx-1">True</span>
+              <span className="mx-1">Pass</span>
             </span>
             <span className="inline-flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 font-mono">F</kbd>
-              <span className="mx-1">False</span>
+              <span className="mx-1">Fail</span>
             </span>
             <span className="mx-2">|</span>
             <span className="inline-flex items-center gap-1">

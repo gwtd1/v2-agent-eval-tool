@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from './client';
 import type { TestRun, TestCase, Evaluation, CreateEvaluationInput, UpdateEvaluationInput } from '../types';
+import type { LlmJudgeResult } from '../llm/types';
 
 // Helper to convert snake_case DB rows to camelCase
 function toCamelCase<T>(row: Record<string, unknown>): T {
@@ -10,6 +11,20 @@ function toCamelCase<T>(row: Record<string, unknown>): T {
     result[camelKey] = row[key];
   }
   return result as T;
+}
+
+// Helper to parse LLM judge result JSON
+function parseTestCaseRow(row: Record<string, unknown>): TestCase {
+  const testCase = toCamelCase<TestCase>(row);
+  // Parse llmJudgeResult from JSON string
+  if (testCase.llmJudgeResult && typeof testCase.llmJudgeResult === 'string') {
+    try {
+      testCase.llmJudgeResult = JSON.parse(testCase.llmJudgeResult as unknown as string);
+    } catch {
+      testCase.llmJudgeResult = null;
+    }
+  }
+  return testCase;
 }
 
 // Test Runs
@@ -65,11 +80,12 @@ export function deleteTestRun(id: string): boolean {
 export function createTestCase(data: Omit<TestCase, 'id' | 'createdAt'>): TestCase {
   const db = getDb();
   const id = uuidv4();
+  const llmJudgeResultJson = data.llmJudgeResult ? JSON.stringify(data.llmJudgeResult) : null;
   const stmt = db.prepare(`
-    INSERT INTO test_cases (id, test_run_id, prompt, ground_truth, agent_response, traces)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO test_cases (id, test_run_id, prompt, ground_truth, agent_response, traces, llm_judge_result, chat_link)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  stmt.run(id, data.testRunId, data.prompt, data.groundTruth, data.agentResponse, data.traces);
+  stmt.run(id, data.testRunId, data.prompt, data.groundTruth, data.agentResponse, data.traces, llmJudgeResultJson, data.chatLink);
   return getTestCase(id)!;
 }
 
@@ -77,14 +93,14 @@ export function getTestCasesByRunId(testRunId: string): TestCase[] {
   const db = getDb();
   const stmt = db.prepare('SELECT * FROM test_cases WHERE test_run_id = ? ORDER BY created_at ASC');
   const rows = stmt.all(testRunId) as Record<string, unknown>[];
-  return rows.map((row) => toCamelCase<TestCase>(row));
+  return rows.map((row) => parseTestCaseRow(row));
 }
 
 export function getTestCase(id: string): TestCase | undefined {
   const db = getDb();
   const stmt = db.prepare('SELECT * FROM test_cases WHERE id = ?');
   const row = stmt.get(id) as Record<string, unknown> | undefined;
-  return row ? toCamelCase<TestCase>(row) : undefined;
+  return row ? parseTestCaseRow(row) : undefined;
 }
 
 export function updateTestCase(id: string, data: Partial<Pick<TestCase, 'agentResponse' | 'traces'>>): TestCase | undefined {
@@ -106,6 +122,22 @@ export function updateTestCase(id: string, data: Partial<Pick<TestCase, 'agentRe
   values.push(id);
   const stmt = db.prepare(`UPDATE test_cases SET ${updates.join(', ')} WHERE id = ?`);
   stmt.run(...values);
+  return getTestCase(id);
+}
+
+export function updateTestCaseLlmJudgeResult(id: string, result: LlmJudgeResult): TestCase | undefined {
+  const db = getDb();
+  const resultJson = JSON.stringify(result);
+  const stmt = db.prepare('UPDATE test_cases SET llm_judge_result = ? WHERE id = ?');
+  const updateResult = stmt.run(resultJson, id);
+
+  // Verify write succeeded
+  if (updateResult.changes === 0) {
+    console.error(`[DB] Failed to update llm_judge_result for test case: ${id} - no rows affected`);
+    return undefined;
+  }
+
+  console.log(`[DB] Updated llm_judge_result for test case: ${id}`);
   return getTestCase(id);
 }
 
