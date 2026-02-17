@@ -85,11 +85,11 @@ sequenceDiagram
 ```
 ## V3 Features
 
-| ID  | Category | Developer | Requirement                                        | Status | Notes                                                                                              |
-|-----|----------|-----------|---------------------------------------------------|--------|----------------------------------------------------------------------------------------------------|
-| E1  | UI       | gwtd1     | Consistent click behaviors for expandable sections |        | Unify "Show" button and "^" toggle button designs across Conversation Traces and LLM Evaluation   |
-| E2  | UI       | gwtd1     | Consistent section heading design                  |        | Standardize Prompt, Agent Response, Traces, LLM Evaluation, Ground Truth headings with colors     |
-| E3  | UI       | gwtd1     | Human evaluation UI redesign                       |        | Modern facelift for 3-pane evaluation layout; research design options before implementation       |
+| ID  | Category | Developer | Requirement                                        | Status    | Notes                                                                                              |
+|-----|----------|-----------|---------------------------------------------------|-----------|----------------------------------------------------------------------------------------------------|
+| E1  | UI       | gwtd1     | Consistent click behaviors for expandable sections | Completed | Unify "Show" button and "^" toggle button designs across Conversation Traces and LLM Evaluation   |
+| E2  | UI       | gwtd1     | Consistent section heading design                  | Completed | Standardize Prompt, Agent Response, Traces, LLM Evaluation, Ground Truth headings with colors     |
+| E3  | UI       | gwtd1     | Human evaluation UI redesign                       | Completed | Modern facelift for 3-pane evaluation layout; research design options before implementation       |
 
 ### V3 Requirements Explanation
 
