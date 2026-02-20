@@ -164,12 +164,12 @@ The three-pane human evaluation page needs a visual refresh to look modern yet s
 | D20  | UI + BE  | gwtd1     | Show TDX execution logs during tests   |        | Stream TDX CLI logs to UI when running tests; show real-time execution feedback          |
 | D25  | Infra    | gwtd1     | Cloud storage for test.yml             |        | Store test.yml for each agent in cloud storage for remote access                         |
 | D27  | UI + BE  | gwtd1     | TDX Project Selector Dropdown          | Demo   | Add project dropdown to switch between TDX LLM projects without CLI commands             |
-| D28  | BE       | gwtd1     | Filesystem-safe path handling          | Demo   | Convert special characters in project/agent names (colons → underscores) for local paths |
-| D28b | BE       | gwtd1     | TDX_PROJECT env var support            | Demo   | Allow setting project context via environment variable for project switching             |
-| D28c | BE       | gwtd1     | Fix JSON parsing for mixed TDX output  | Demo   | Extract JSON array from TDX output that contains status messages before JSON             |
-| D29  | BE       | gwtd1     | TDX built-in evaluation integration    | Demo   | Use TDX's PASS/FAIL evaluation results instead of calling external LLM API               |
-| D30  | BE       | gwtd1     | Dynamic project context API            |        | API endpoint to set/get current project context at runtime (for D27 UI support)          |
-| D31  | BE       | gwtd1     | Project list API endpoint              |        | `/api/projects` endpoint to fetch available TDX LLM projects via `tdx llm projects`      |
+| D28  | BE       | gwtd1     | Filesystem-safe path handling          | Completed | Convert special characters in project/agent names (colons → underscores) for local paths |
+| D28b | BE       | gwtd1     | TDX_PROJECT env var support            | Completed | Allow setting project context via environment variable for project switching             |
+| D28c | BE       | gwtd1     | Fix JSON parsing for mixed TDX output  | Completed | Extract JSON array from TDX output that contains status messages before JSON             |
+| D29  | BE       | gwtd1     | TDX built-in evaluation integration    | Completed | Use TDX's PASS/FAIL evaluation results instead of calling external LLM API               |
+| D30  | BE       | gwtd1     | Dynamic project context API            | Completed | API endpoint to set/get current project context at runtime (for D27 UI support)          |
+| D31  | BE       | gwtd1     | Project list API endpoint              | Completed | `/api/projects` endpoint to fetch available TDX LLM projects via `tdx llm projects`      |
 | D32  | Github   | gwtd1     | Setup Slack logging for PRs and merges |        | Log all github activity to slack channel                                                 |
 
 
