@@ -18,6 +18,28 @@ export interface ParsedTestCase {
   status: 'pass' | 'fail' | 'error';
   error?: string;
   chatLink?: string;
+  /** TDX's built-in evaluation reasoning (from PASS:/FAIL: output) */
+  tdxEvaluation?: string;
+}
+
+/**
+ * Parse an array of agent objects from TDX JSON output
+ */
+function parseAgentArray(agents: Array<Record<string, unknown>>): ParsedAgent[] {
+  // Use TDX_PROJECT env var as default if no project in agent data
+  const defaultProject = process.env.TDX_PROJECT || 'tdx_default_gregwilliams';
+
+  return agents.map((agent) => {
+    // Calculate project first - extract from path if available, otherwise use agent.project or env default
+    const project = (agent.project as string) || extractProjectFromPath(agent.path as string) || defaultProject;
+
+    return {
+      id: (agent.id as string) || (agent.name as string),
+      name: agent.name as string,
+      path: (agent.path as string) || `agents/${project}/${agent.name}`,
+      project,
+    };
+  });
 }
 
 /**
@@ -28,23 +50,27 @@ export function parseAgentListOutput(output: string): ParsedAgent[] {
   const agents: ParsedAgent[] = [];
 
   // Try parsing as JSON first
+  // The output may contain status messages before the JSON array, so we need to find it
   try {
+    // First try parsing the entire output
     const parsed = JSON.parse(output);
     if (Array.isArray(parsed)) {
-      return parsed.map((agent) => {
-        // Calculate project first - extract from path if available, otherwise use agent.project or 'default'
-        const project = agent.project || extractProjectFromPath(agent.path) || 'tdx_default_gregwilliams';
-
-        return {
-          id: agent.id || agent.name,
-          name: agent.name,
-          path: agent.path || `agents/${project}/${agent.name}`,
-          project,
-        };
-      });
+      return parseAgentArray(parsed);
     }
   } catch {
-    // Not JSON, parse as text
+    // Not pure JSON, try to extract JSON array from the output
+    // TDX may output status messages before the JSON (e.g., "Resolving project...")
+    const jsonMatch = output.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed)) {
+          return parseAgentArray(parsed);
+        }
+      } catch {
+        // JSON extraction failed, fall through to text parsing
+      }
+    }
   }
 
   // Parse text output format
@@ -266,16 +292,17 @@ export function extractTestCasesFromOutput(output: string): ParsedTestCase[] {
 
   const saveCase = () => {
     if (currentCase && currentCase.name) {
-      // Use evaluation reason as the "response" since TDX doesn't output the actual prompt/response
+      // TDX evaluation reasoning from PASS:/FAIL: lines
       const evaluationText = evaluationReason.join(' ').trim();
       testCases.push({
         name: currentCase.name,
         prompt: currentCase.name, // Use test name as prompt placeholder
         groundTruth: null,
-        agentResponse: evaluationText || null, // Use evaluation as response info
+        agentResponse: null, // Will be populated from chat history
         status: currentCase.status || 'pass',
         error: currentCase.error,
         chatLink: currentCase.chatLink,
+        tdxEvaluation: evaluationText || undefined,  // NEW FIELD
       });
     }
     evaluationReason = [];
@@ -349,6 +376,8 @@ export function extractTestCasesFromOutput(output: string): ParsedTestCase[] {
  * Parse agent path into project and agent name
  */
 export function parseAgentPath(agentPath: string): { project: string; agent: string } {
+  const defaultProject = process.env.TDX_PROJECT || 'tdx_default_gregwilliams';
+
   // Handle "agents/{project}/{agent}" format
   const fullMatch = agentPath.match(/agents\/([^/]+)\/([^/]+)/);
   if (fullMatch) {
@@ -362,7 +391,7 @@ export function parseAgentPath(agentPath: string): { project: string; agent: str
   }
 
   // Just agent name
-  return { project: 'tdx_default_gregwilliams', agent: agentPath };
+  return { project: defaultProject, agent: agentPath };
 }
 
 /**
@@ -370,7 +399,9 @@ export function parseAgentPath(agentPath: string): { project: string; agent: str
  */
 function extractProjectFromPath(path: string): string {
   const match = path?.match(/agents\/([^/]+)/);
-  return match ? match[1] : 'tdx_default_gregwilliams';
+  if (match) return match[1];
+  // Return empty string to allow fallback to TDX_PROJECT env var
+  return '';
 }
 
 /**
@@ -412,10 +443,20 @@ export interface TestYamlData {
 }
 
 /**
+ * Convert path to filesystem-safe version (colons → underscores)
+ * TDX CLI replaces colons with underscores in folder names
+ */
+function toFilesystemSafePath(pathStr: string): string {
+  return pathStr.replace(/:/g, '_');
+}
+
+/**
  * Read test.yml file for an agent and return a map of test name to user_input and criteria
  */
 export function readTestYamlForAgent(agentPath: string): Map<string, TestYamlData> {
-  const testYamlPath = path.join(process.cwd(), agentPath, 'test.yml');
+  // Convert to filesystem-safe path (colons → underscores)
+  const safePath = toFilesystemSafePath(agentPath);
+  const testYamlPath = path.join(process.cwd(), safePath, 'test.yml');
   const map = new Map<string, TestYamlData>();
 
   try {
