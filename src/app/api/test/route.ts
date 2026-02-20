@@ -9,7 +9,6 @@ import {
 } from '@/lib/db/queries';
 import { executeTdxAgentTest, initTdxAgentTest, executeTdxLlmHistory, extractThreadIdFromUrl } from '@/lib/tdx/executor';
 import { extractTestCasesFromOutput, parseAgentPath, readTestYamlForAgent } from '@/lib/tdx/parser';
-import { evaluateWithLlm } from '@/lib/llm/evaluator';
 import type { TestCase } from '@/lib/types';
 
 /**
@@ -236,58 +235,47 @@ export async function POST(request: NextRequest) {
       return testCases;
     });
 
-    // LLM-as-a-Judge evaluation
-    const apiKey = process.env.TD_API_KEY;
+    // Use TDX's built-in evaluation results (from PASS:/FAIL: output)
+    // This avoids calling an external LLM API and uses the evaluation that TDX already performed
     let completedLlmEvaluations = 0;
+    const totalTests = createdTestCases.length;
 
-    if (apiKey) {
-      console.log(`[API] Starting LLM evaluation for ${createdTestCases.length} test cases`);
-      const totalTests = createdTestCases.length;
+    console.log(`[API] Applying TDX evaluation results for ${totalTests} test cases`);
 
-      for (let i = 0; i < createdTestCases.length; i++) {
-        const testCase = createdTestCases[i];
-        const testNumber = i + 1;
-        const testName = testNameMap.get(testCase.id) || `Test ${testNumber}`;
+    for (let i = 0; i < createdTestCases.length; i++) {
+      const testCase = createdTestCases[i];
+      const testNumber = i + 1;
+      const testName = testNameMap.get(testCase.id) || `Test ${testNumber}`;
+      const parsedCase = parsedCases[i];
 
-        console.log(`[API] LLM evaluation ${testNumber}/${totalTests}: Starting ${testName}`);
+      // Check if we have TDX evaluation data
+      if (parsedCase && parsedCase.tdxEvaluation) {
+        const llmResult = {
+          verdict: parsedCase.status === 'pass' ? 'pass' : 'fail' as 'pass' | 'fail',
+          reasoning: parsedCase.tdxEvaluation,
+          conversationUrl: parsedCase.chatLink || '',
+          testNumber,
+          totalTests,
+          testName,
+          prompt: testCase.prompt,
+          evaluatedAt: new Date().toISOString(),
+          evaluatorAgentId: 'tdx-builtin', // Indicates this came from TDX's built-in evaluation
+        };
 
-        try {
-          // Build conversation history
-          const conversationHistory = `User: ${testCase.prompt}\n\nAssistant: ${testCase.agentResponse || '[No response]'}`;
-
-          // Use ground truth as criteria
-          const criteria = testCase.groundTruth || 'Evaluate if the response is helpful, accurate, and addresses the user query appropriately.';
-
-          const llmResult = await evaluateWithLlm(
-            {
-              conversationHistory,
-              criteria,
-              testName,
-              testNumber,
-              totalTests,
-              prompt: testCase.prompt,
-            },
-            apiKey
-          );
-
-          // Update test case with LLM result
-          const updatedTestCase = updateTestCaseLlmJudgeResult(testCase.id, llmResult);
-          if (updatedTestCase) {
-            completedLlmEvaluations++;
-            console.log(`[API] LLM evaluation ${testNumber}/${totalTests} complete: ${testName} -> ${llmResult.verdict}`);
-          } else {
-            console.error(`[API] LLM evaluation ${testNumber}/${totalTests} FAILED TO SAVE: ${testName}`);
-          }
-        } catch (error) {
-          console.error(`[API] LLM evaluation ${testNumber}/${totalTests} error for ${testName}:`, error);
-          // Continue with other test cases even if one fails
+        // Update test case with TDX evaluation result
+        const updatedTestCase = updateTestCaseLlmJudgeResult(testCase.id, llmResult);
+        if (updatedTestCase) {
+          completedLlmEvaluations++;
+          console.log(`[API] TDX evaluation ${testNumber}/${totalTests}: ${testName} -> ${llmResult.verdict}`);
+        } else {
+          console.error(`[API] TDX evaluation ${testNumber}/${totalTests} FAILED TO SAVE: ${testName}`);
         }
+      } else {
+        console.warn(`[API] No TDX evaluation found for ${testName}`);
       }
-
-      console.log(`[API] All LLM evaluations complete: ${completedLlmEvaluations}/${totalTests} saved`);
-    } else {
-      console.log('[API] Skipping LLM evaluation - TD_API_KEY not set');
     }
+
+    console.log(`[API] All TDX evaluations applied: ${completedLlmEvaluations}/${totalTests} saved`);
 
     // Ensure all writes are flushed to SQLite before responding
     // This small delay allows any pending write operations to complete

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V3 Human Evaluation UI Prototype</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom design tokens */
+    :root {
+      --bg-primary: #FFFFFF;
+      --bg-secondary: #F9FAFB;
+      --border-default: #E5E7EB;
+      --border-focus: #4F46E5;
+      --accent-primary: #4F46E5;
+      --success: #10B981;
+      --error: #EF4444;
+    }
+
+    /* Smooth transitions */
+    .expandable-content {
+      transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
+      overflow: hidden;
+    }
+
+    .expandable-content.collapsed {
+      max-height: 0;
+      opacity: 0;
+    }
+
+    .expandable-content.expanded {
+      max-height: 1000px;
+      opacity: 1;
+    }
+
+    .chevron {
+      transition: transform 0.2s ease-out;
+    }
+
+    .chevron.rotated {
+      transform: rotate(180deg);
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 px-6 py-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <h1 class="text-lg font-semibold text-gray-900">Agent Evaluation Tool</h1>
+        <span class="text-sm text-gray-500">V3 Prototype</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-gray-600">math-tutor agent</span>
+        <button class="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
+          Export CSV
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Three-Pane Layout -->
+  <div class="flex h-[calc(100vh-65px)]">
+
+    <!-- Left Panel: Test Case List -->
+    <div class="w-72 bg-white border-r border-gray-200 flex flex-col">
+      <!-- Header -->
+      <div class="p-4 border-b border-gray-200">
+        <h2 class="text-base font-semibold text-gray-900">Test Cases</h2>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <div class="flex gap-1">
+          <button class="px-3 py-1.5 text-xs font-medium rounded-md bg-white text-gray-900 shadow-sm border border-gray-200">
+            All (5)
+          </button>
+          <button class="px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+            Pending (2)
+          </button>
+          <button class="px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+            Reviewed (3)
+          </button>
+        </div>
+      </div>
+
+      <!-- Test Case Items -->
+      <div class="flex-1 overflow-y-auto">
+        <!-- Selected Item -->
+        <button class="w-full text-left p-4 border-b border-gray-100 bg-indigo-50 border-l-4 border-l-indigo-500">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <span class="text-xs text-gray-500 font-mono">#1</span>
+              <p class="text-sm font-medium text-gray-900 truncate mt-0.5">What is 2 + 2?</p>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+              Pass
+            </span>
+          </div>
+        </button>
+
+        <!-- Other Items -->
+        <button class="w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <span class="text-xs text-gray-500 font-mono">#2</span>
+              <p class="text-sm font-medium text-gray-900 truncate mt-0.5">Calculate the derivative of x^2</p>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+              Fail
+            </span>
+          </div>
+        </button>
+
+        <button class="w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <span class="text-xs text-gray-500 font-mono">#3</span>
+              <p class="text-sm font-medium text-gray-900 truncate mt-0.5">Solve for x: 3x + 5 = 20</p>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+              Pending
+            </span>
+          </div>
+        </button>
+
+        <button class="w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <span class="text-xs text-gray-500 font-mono">#4</span>
+              <p class="text-sm font-medium text-gray-900 truncate mt-0.5">What is the square root of 144?</p>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+              Pass
+            </span>
+          </div>
+        </button>
+
+        <button class="w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <span class="text-xs text-gray-500 font-mono">#5</span>
+              <p class="text-sm font-medium text-gray-900 truncate mt-0.5">Explain the Pythagorean theorem</p>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+              Pending
+            </span>
+          </div>
+        </button>
+      </div>
+
+      <!-- Progress Footer -->
+      <div class="p-4 border-t border-gray-200 bg-white">
+        <div class="flex items-center justify-between text-sm text-gray-600 mb-2">
+          <span>Progress</span>
+          <span class="font-medium">3/5 reviewed</span>
+        </div>
+        <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div class="h-full bg-indigo-500 transition-all duration-300" style="width: 60%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle Panel: Conversation View -->
+    <div class="flex-1 overflow-y-auto bg-gray-50">
+      <div class="p-6 space-y-6">
+
+        <!-- Prompt Section -->
+        <section class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-blue-50">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-600 text-xs font-semibold">
+              P
+            </span>
+            <h3 class="text-sm font-semibold text-gray-900">Prompt</h3>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-gray-700">What is 2 + 2?</p>
+          </div>
+        </section>
+
+        <!-- Agent Response Section -->
+        <section class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-emerald-50">
+            <div class="flex items-center gap-3">
+              <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-600 text-xs font-semibold">
+                R
+              </span>
+              <h3 class="text-sm font-semibold text-gray-900">Agent Response</h3>
+            </div>
+            <a href="#" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors">
+              View Full Conversation
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-gray-700">The answer to 2 + 2 is <strong>4</strong>.</p>
+            <p class="text-sm text-gray-700 mt-2">This is a basic addition problem. When you add 2 and 2 together, you get 4.</p>
+          </div>
+        </section>
+
+        <!-- Conversation Traces Section (Expandable) -->
+        <section class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-indigo-50 cursor-pointer hover:bg-indigo-100 transition-colors" onclick="toggleSection('traces')">
+            <div class="flex items-center gap-3">
+              <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 text-xs font-semibold">
+                T
+              </span>
+              <h3 class="text-sm font-semibold text-gray-900">Conversation Traces</h3>
+              <span class="text-xs text-gray-500">(2 steps)</span>
+            </div>
+            <button class="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800">
+              <span id="traces-label">Show</span>
+              <svg id="traces-chevron" class="w-4 h-4 chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div id="traces-content" class="expandable-content collapsed">
+            <div class="p-4 space-y-3">
+              <!-- Trace Flow Diagram Placeholder -->
+              <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div class="flex items-center justify-center">
+                  <div class="flex items-center gap-2">
+                    <div class="px-3 py-2 bg-blue-100 rounded-lg text-xs font-medium text-blue-700">User Input</div>
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                    <div class="px-3 py-2 bg-indigo-100 rounded-lg text-xs font-medium text-indigo-700">Agent</div>
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                    <div class="px-3 py-2 bg-emerald-100 rounded-lg text-xs font-medium text-emerald-700">Response</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- LLM Evaluation Section (Expandable) -->
+        <section class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-purple-50 cursor-pointer hover:bg-purple-100 transition-colors" onclick="toggleSection('llm')">
+            <div class="flex items-center gap-3">
+              <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-purple-100 text-purple-600 text-xs font-semibold">
+                L
+              </span>
+              <h3 class="text-sm font-semibold text-gray-900">LLM Evaluation</h3>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                Pass
+              </span>
+            </div>
+            <button class="flex items-center gap-1.5 text-sm text-purple-600 hover:text-purple-800">
+              <span id="llm-label">Show</span>
+              <svg id="llm-chevron" class="w-4 h-4 chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div id="llm-content" class="expandable-content collapsed">
+            <div class="p-4 space-y-4">
+              <div>
+                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Verdict</span>
+                <div class="mt-1">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                    Pass
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Reasoning</span>
+                <p class="mt-1 text-sm text-gray-700 bg-purple-50 rounded-lg p-3">
+                  The agent correctly answered that 2 + 2 = 4. The response is accurate, clear, and provides a brief explanation suitable for educational purposes.
+                </p>
+              </div>
+              <div class="pt-3 border-t border-purple-100">
+                <p class="text-xs text-gray-400">Evaluated at 2/13/2026, 2:45:32 PM</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Ground Truth Section -->
+        <section class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-amber-50">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-600 text-xs font-semibold">
+              G
+            </span>
+            <h3 class="text-sm font-semibold text-gray-900">Ground Truth</h3>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-gray-700">The answer should be 4. The agent should demonstrate understanding of basic addition.</p>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- Right Panel: Evaluation Controls -->
+    <div class="w-80 bg-white border-l border-gray-200 flex flex-col">
+      <!-- Header -->
+      <div class="p-4 border-b border-gray-200">
+        <h2 class="text-base font-semibold text-gray-900">Evaluation</h2>
+        <p class="text-xs text-gray-500 mt-1">Test 1 of 5</p>
+      </div>
+
+      <!-- Rating Section -->
+      <div class="p-4 border-b border-gray-200">
+        <label class="block text-sm font-medium text-gray-700 mb-3">Rating</label>
+        <div class="flex gap-3">
+          <!-- Pass Button -->
+          <button class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-medium transition-colors">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+            </svg>
+            Pass
+          </button>
+          <!-- Fail Button -->
+          <button class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-600 font-medium hover:border-red-300 hover:bg-red-50 hover:text-red-600 transition-colors">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
+            </svg>
+            Fail
+          </button>
+        </div>
+      </div>
+
+      <!-- Notes Section -->
+      <div class="flex-1 p-4 flex flex-col">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+        <textarea
+          class="flex-1 w-full px-3 py-2 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          placeholder="Add evaluation notes..."
+        >The agent provided a correct and clear explanation.</textarea>
+        <p class="text-xs text-gray-400 mt-2">Auto-saved</p>
+      </div>
+
+      <!-- Navigation -->
+      <div class="p-4 border-t border-gray-200">
+        <div class="flex gap-3">
+          <button class="flex-1 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+            Previous
+          </button>
+          <button class="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function toggleSection(sectionId) {
+      const content = document.getElementById(sectionId + '-content');
+      const label = document.getElementById(sectionId + '-label');
+      const chevron = document.getElementById(sectionId + '-chevron');
+
+      if (content.classList.contains('collapsed')) {
+        content.classList.remove('collapsed');
+        content.classList.add('expanded');
+        label.textContent = 'Hide';
+        chevron.classList.add('rotated');
+      } else {
+        content.classList.remove('expanded');
+        content.classList.add('collapsed');
+        label.textContent = 'Show';
+        chevron.classList.remove('rotated');
+      }
+    }
+  </script>
+
+</body>
+</html>

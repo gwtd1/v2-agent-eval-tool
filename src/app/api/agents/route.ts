@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkTdxAvailable, listTdxAgents } from '@/lib/tdx/executor';
 import { parseAgentListOutput } from '@/lib/tdx/parser';
+import { getCurrentProject } from '@/lib/session/project-context';
 
 export async function GET() {
   console.log('[API] GET /api/agents - Fetching agent list');
@@ -15,8 +16,9 @@ export async function GET() {
     );
   }
 
-  // Execute tdx agent list
-  const result = await listTdxAgents();
+  // Get current project context and execute tdx agent list
+  const currentProject = getCurrentProject();
+  const result = await listTdxAgents(currentProject || undefined);
 
   if (result.exitCode !== 0) {
     console.error('[API] TDX agent list failed:', result.stderr);

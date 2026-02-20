@@ -85,8 +85,8 @@ export function TestCaseList({ evaluations, selectedId, onSelect }: TestCaseList
             <button
               key={evaluation.id}
               onClick={() => onSelect(evaluation.testCaseId)}
-              className={`w-full text-left p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+              className={`w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                isSelected ? 'bg-indigo-50 border-l-4 border-l-indigo-500' : ''
               }`}
             >
               <div className="flex items-start justify-between gap-2">
@@ -134,7 +134,7 @@ export function TestCaseList({ evaluations, selectedId, onSelect }: TestCaseList
         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
           <div
             className={`h-full transition-all duration-300 ${
-              reviewed === total && total > 0 ? 'bg-green-500' : 'bg-blue-500'
+              reviewed === total && total > 0 ? 'bg-emerald-500' : 'bg-indigo-500'
             }`}
             style={{ width: total > 0 ? `${(reviewed / total) * 100}%` : '0%' }}
           />

@@ -19,6 +19,14 @@ export interface TdxExecutorOptions {
 
 const DEFAULT_TIMEOUT = 120000; // 2 minutes
 
+/**
+ * Convert project name to filesystem-safe folder name
+ * TDX CLI replaces colons with underscores in folder names
+ */
+function toFilesystemSafeName(name: string): string {
+  return name.replace(/:/g, '_');
+}
+
 export interface ToolCallInfo {
   id?: string;
   functionName: string;
@@ -100,8 +108,19 @@ export async function executeTdxCommand(
 
 /**
  * List all available TDX agents
+ * Uses TDX_PROJECT env var if set, otherwise uses default project context
+ * Note: Session-based project context is handled at the API level
  */
-export async function listTdxAgents(): Promise<TdxCommandResult> {
+export async function listTdxAgents(projectOverride?: string): Promise<TdxCommandResult> {
+  // Use provided project override, otherwise fallback to environment variable
+  const project = projectOverride || process.env.TDX_PROJECT;
+
+  if (project) {
+    // Set project context before listing agents
+    const escapedProject = project.replace(/"/g, '\\"');
+    return executeTdxCommand(`tdx use llm_project "${escapedProject}" && tdx agent list --format json`);
+  }
+
   return executeTdxCommand('tdx agent list --format json');
 }
 
@@ -131,11 +150,14 @@ export async function executeTdxAgentTest(agentPath: string): Promise<TdxCommand
   // Escape for shell safety
   const escapedAgent = agentName.replace(/"/g, '\\"');
   const escapedProject = projectName.replace(/"/g, '\\"');
+  // Convert to filesystem-safe names (colons → underscores)
+  const safeProject = toFilesystemSafeName(projectName);
+  const safeAgent = toFilesystemSafeName(agentName);
 
   // If we have a project, set context first then run test with full path
   if (projectName) {
-    // TDX requires full path: agents/<project>/<agent>
-    const fullPath = `agents/${escapedProject}/${escapedAgent}`;
+    // TDX requires full path with filesystem-safe names: agents/<project>/<agent>
+    const fullPath = `agents/${safeProject}/${safeAgent}`;
     const command = `tdx use llm_project "${escapedProject}" && tdx agent test "${fullPath}"`;
     return executeTdxCommand(command, {
       timeout: 300000, // 5 minutes for test execution
@@ -241,8 +263,12 @@ export async function initTdxAgentTest(
     };
   }
 
-  // Construct the local file path
-  const agentDir = path.join(process.cwd(), 'agents', projectName, agentName);
+  // Convert to filesystem-safe names (colons → underscores)
+  const safeProject = toFilesystemSafeName(projectName);
+  const safeAgent = toFilesystemSafeName(agentName);
+
+  // Construct the local file path using filesystem-safe names
+  const agentDir = path.join(process.cwd(), 'agents', safeProject, safeAgent);
   const testYmlPath = path.join(agentDir, 'test.yml');
 
   console.log(`[TDX] Initializing test for agent: ${projectName}/${agentName}`);
@@ -252,8 +278,11 @@ export async function initTdxAgentTest(
     console.log(`[TDX] Agent directory not found locally, pulling from TDX: ${agentDir}`);
 
     // Pull agent from TDX: tdx agent pull <project> <agent-name>
+    // Use original project name (with colons) for TDX API
+    const escapedProject = projectName.replace(/"/g, '\\"');
+    const escapedAgent = agentName.replace(/"/g, '\\"');
     const pullResult = await executeTdxCommand(
-      `tdx agent pull "${projectName}" "${agentName}"`,
+      `tdx agent pull "${escapedProject}" "${escapedAgent}"`,
       { timeout: 60000 } // 1 minute for pull
     );
 
