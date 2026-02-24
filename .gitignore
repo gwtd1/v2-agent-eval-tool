@@ -42,3 +42,30 @@ data/*.db-shm
 
 # TDX CLI cache
 .cache/
+
+# Development files and examples
+.env.local.example
+IMPLEMENTATION_SUMMARY.md
+
+# Generated agent data
+agents/tdx_default_*/
+
+# Development scripts
+scripts/test-cli-integration.js
+scripts/view-logs.ts
+
+# Logs
+logs/
+
+# Development API routes
+src/app/api/claude/
+src/app/api/test-tdx/
+
+# Development components
+src/components/ai/
+src/components/settings/
+
+# Development lib modules
+src/lib/cache/
+src/lib/claude/
+src/lib/logging/
