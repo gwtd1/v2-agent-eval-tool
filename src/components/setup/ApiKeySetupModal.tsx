@@ -220,7 +220,7 @@ export function ApiKeySetupModal() {
                       type={showPassword ? 'text' : 'password'}
                       value={setupData.apiKey || ''}
                       onChange={(e) => handleApiKeyChange(e.target.value)}
-                      placeholder="1/your_api_key_here"
+                      placeholder="Enter your API key"
                       className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button

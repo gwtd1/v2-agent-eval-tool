@@ -76,11 +76,7 @@ export function validateApiKey(apiKey: string): { isValid: boolean; error?: stri
     return { isValid: false, error: 'API key is required' };
   }
 
-  if (!apiKey.startsWith('1/')) {
-    return { isValid: false, error: 'API key must start with "1/"' };
-  }
-
-  if (apiKey.length < 10) {
+  if (apiKey.length < 3) {
     return { isValid: false, error: 'API key is too short' };
   }
 
