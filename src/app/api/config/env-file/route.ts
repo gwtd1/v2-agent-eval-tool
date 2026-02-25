@@ -42,6 +42,11 @@ export async function POST(request: NextRequest) {
 TD_API_KEY=${apiKey}
 TD_LLM_BASE_URL=${tdLlmBaseUrl}
 
+# Feature #4: API Key Configuration Popup
+# Enables direct API calls instead of TDX CLI (3-5x faster)
+# Falls back to TDX CLI if API fails or set to false
+USE_DIRECT_API=true
+
 # Database
 DATABASE_PATH=./data/evaluations.db
 

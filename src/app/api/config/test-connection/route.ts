@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKey } from '@/utils/environmentDetection';
+import { createTdLlmClientWithCredentials } from '@/lib/api/llm-client';
 
 /**
- * Test API connection with provided credentials
+ * Test API connection with provided credentials using the correct TD LLM API
  */
 export async function POST(request: NextRequest) {
   try {
@@ -17,56 +18,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine the API URL to test against
-    const testUrl = baseUrl
-      ? (baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`)
-      : 'https://llm-api.us01.treasuredata.com/api';
+    // Determine the correct API URL
+    const finalBaseUrl = baseUrl || 'https://llm-api.us01.treasuredata.com';
 
-    // Test the connection by making a simple API call
-    const testResponse = await fetch(`${testUrl}/agents`, {
-      headers: {
-        'Authorization': `TD1 ${apiKey}`,
-        'Content-Type': 'application/vnd.api+json',
-      },
-    });
+    // Create TD LLM client with provided credentials
+    const client = createTdLlmClientWithCredentials(apiKey, finalBaseUrl);
 
-    if (!testResponse.ok) {
-      const errorText = await testResponse.text();
-      console.error('[API] Test connection failed:', testResponse.status, errorText);
+    console.log(`[API] Testing connection to ${finalBaseUrl} with API key ${apiKey.substring(0, 8)}...`);
 
-      if (testResponse.status === 401) {
-        return NextResponse.json(
-          { error: 'Invalid API key or insufficient permissions' },
-          { status: 401 }
-        );
-      }
+    // Test the connection by fetching projects
+    const startTime = Date.now();
+    const projects = await client.getProjects();
+    const duration = Date.now() - startTime;
 
-      if (testResponse.status === 403) {
-        return NextResponse.json(
-          { error: 'API key does not have required permissions' },
-          { status: 403 }
-        );
-      }
-
-      return NextResponse.json(
-        { error: `Connection test failed (${testResponse.status})` },
-        { status: 400 }
-      );
-    }
-
-    const data = await testResponse.json();
+    console.log(`[API] Connection test successful! Fetched ${projects.length} projects in ${duration}ms`);
 
     return NextResponse.json({
       success: true,
-      apiUrl: testUrl,
-      agentCount: data.data?.length || 0,
+      apiUrl: finalBaseUrl,
+      projectCount: projects.length,
+      duration_ms: duration,
       timestamp: new Date().toISOString(),
+      message: `Successfully connected! Found ${projects.length} projects.`
     });
 
   } catch (error) {
     console.error('[API] Test connection error:', error);
 
-    if (error instanceof TypeError && error.message.includes('fetch')) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Parse common TD API errors
+    if (errorMessage.includes('401')) {
+      return NextResponse.json(
+        { error: 'Invalid API key. Please check your TD API key and try again.' },
+        { status: 401 }
+      );
+    }
+
+    if (errorMessage.includes('403')) {
+      return NextResponse.json(
+        { error: 'API key does not have required permissions. Please ensure your API key has access to projects and agents.' },
+        { status: 403 }
+      );
+    }
+
+    if (errorMessage.includes('fetch')) {
       return NextResponse.json(
         { error: 'Unable to connect to Treasure Data API. Please check your internet connection and API URL.' },
         { status: 500 }
@@ -74,7 +70,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Connection test failed due to an unexpected error' },
+      {
+        error: `Connection test failed: ${errorMessage}`,
+        details: 'Please verify your API key and base URL are correct.'
+      },
       { status: 500 }
     );
   }
