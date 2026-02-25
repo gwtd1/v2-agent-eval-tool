@@ -15,9 +15,12 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [performance, setPerformance] = useState<AgentsResponse['performance'] | null>(null);
+  const [method, setMethod] = useState<AgentsResponse['method'] | null>(null);
 
   useEffect(() => {
     async function fetchAgents() {
+      const startTime = Date.now();
       try {
         const response = await fetch('/api/agents');
 
@@ -32,6 +35,13 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
         const data: AgentsResponse = await response.json();
         setAgents(data.agents);
         setByProject(data.byProject);
+        setPerformance(data.performance);
+        setMethod(data.method);
+
+        // Log performance info for debugging
+        if (data.performance) {
+          console.log(`[AgentSelector] Loaded agents using ${data.method} in ${data.performance.duration_ms}ms`);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -87,6 +97,27 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
 
   return (
     <div className="space-y-3">
+      {/* Performance Indicator for Feature #1 */}
+      {performance && method && (
+        <div className={`text-xs px-2 py-1 rounded-md ${
+          method === 'direct_api'
+            ? 'bg-green-50 text-green-700 border border-green-200'
+            : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+        }`}>
+          {method === 'direct_api' ? (
+            <>
+              ⚡ Fast API mode: Loaded in {performance.duration_ms}ms
+              {performance.duration_ms < 300 && ' (3-5x faster)'}
+            </>
+          ) : (
+            <>
+              🐌 CLI fallback: Loaded in {performance.duration_ms}ms
+              <span className="ml-1 text-xs opacity-75">(enable USE_DIRECT_API for faster loading)</span>
+            </>
+          )}
+        </div>
+      )}
+
       <div>
         <label
           htmlFor="project-select"
