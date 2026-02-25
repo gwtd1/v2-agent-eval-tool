@@ -54,12 +54,6 @@ export default function Home() {
               >
                 🏠 Home
               </Link>
-              <Link
-                href="/projects"
-                className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-              >
-                📂 Projects
-              </Link>
             </nav>
           </div>
         </div>

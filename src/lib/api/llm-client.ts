@@ -105,7 +105,7 @@ export class TdLlmClient {
     const startTime = Date.now();
 
     try {
-      const response = await this.makeRequest<TdProject>('/api/projects');
+      const response = await this.makeRequest<TdProject>('/api/projects?page[limit]=100');
       const duration = Date.now() - startTime;
       console.log(`[TD API] Fetched ${response.data.length} projects in ${duration}ms`);
 
@@ -125,9 +125,9 @@ export class TdLlmClient {
     console.log('[TD API] Fetching agents...');
     const startTime = Date.now();
 
-    let endpoint = '/api/agents';
+    let endpoint = '/api/agents?page[limit]=100';
     if (projectId) {
-      endpoint += `?filter[projectId]=${encodeURIComponent(projectId)}`;
+      endpoint += `&filter[projectId]=${encodeURIComponent(projectId)}`;
     }
 
     try {
@@ -220,16 +220,19 @@ export function transformApiDataToAgents(
   path: string;
   project: string;
 }[] {
-  // Create project lookup map for efficiency
-  const projectMap = new Map(projects.map(p => [p.id, p.name]));
+  // Create project lookup map for efficiency - handle JSON:API format
+  const projectMap = new Map(projects.map(p => [p.id, p.attributes?.name || p.name || 'Unnamed Project']));
 
   return agents.map(agent => {
-    const projectName = projectMap.get(agent.project_id) || agent.project_id;
+    // Handle JSON:API format for agent data
+    const agentProjectId = agent.attributes?.projectId || agent.project_id;
+    const agentName = agent.attributes?.name || agent.name || 'Unnamed Agent';
+    const projectName = projectMap.get(agentProjectId) || agentProjectId || 'Unknown Project';
 
     return {
       id: agent.id,
-      name: agent.name,
-      path: `agents/${projectName}/${agent.name}`,
+      name: agentName,
+      path: `agents/${projectName}/${agentName}`,
       project: projectName,
     };
   });

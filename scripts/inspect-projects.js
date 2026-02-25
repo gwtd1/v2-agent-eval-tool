@@ -11,8 +11,8 @@
 const https = require('https');
 const { URL } = require('url');
 
-// Load environment variables
-require('dotenv').config();
+// Load environment variables from .env.local
+require('dotenv').config({ path: '.env.local' });
 
 /**
  * Simple HTTP client for API calls
@@ -84,8 +84,8 @@ async function fetchProjectsAndAgents() {
   try {
     // Parallel API calls for optimal performance
     const [projectsResponse, agentsResponse] = await Promise.all([
-      makeApiCall('/api/projects'),
-      makeApiCall('/api/agents')
+      makeApiCall('/api/projects?page[limit]=100'),
+      makeApiCall('/api/agents?page[limit]=100')
     ]);
 
     const projects = projectsResponse.data || [];
@@ -95,11 +95,12 @@ async function fetchProjectsAndAgents() {
 
     // Enhance projects with agent details
     const projectDetails = projects.map(project => {
-      const projectAgents = agents.filter(agent => agent.project_id === project.id);
+      const projectAgents = agents.filter(agent => agent.attributes.projectId === project.id);
       return {
         ...project,
+        ...project.attributes,  // Flatten attributes for easier access
         agentCount: projectAgents.length,
-        agents: projectAgents
+        agents: projectAgents.map(agent => ({ ...agent, ...agent.attributes }))
       };
     });
 
@@ -138,13 +139,13 @@ function formatDate(dateStr) {
 function displayTable(projects) {
   // Prepare table data
   const tableData = projects.map(project => ({
-    'Name': project.name.length > 30 ? project.name.substring(0, 27) + '...' : project.name,
+    'Name': (project.name && project.name.length > 30) ? project.name.substring(0, 27) + '...' : (project.name || 'Unnamed'),
     'ID': project.id.substring(0, 8) + '...',
     'Agents': project.agentCount.toString(),
-    'Created': formatDate(project.created_at),
-    'Description': project.description
-      ? (project.description.length > 40 ? project.description.substring(0, 37) + '...' : project.description)
-      : 'No description'
+    'Created': formatDate(project.createdAt),
+    'Description': (project.description && project.description.length > 40)
+      ? project.description.substring(0, 37) + '...'
+      : (project.description || 'No description')
   }));
 
   console.table(tableData);
@@ -155,17 +156,17 @@ function displayTable(projects) {
  */
 function displayDetailed(projects) {
   projects.forEach((project, index) => {
-    console.log(`\n${index + 1}. ${project.name}`);
+    console.log(`\n${index + 1}. ${project.name || 'Unnamed Project'}`);
     console.log(`   ID: ${project.id}`);
     console.log(`   Agents: ${project.agentCount}`);
-    console.log(`   Created: ${formatDate(project.created_at)}`);
+    console.log(`   Created: ${formatDate(project.createdAt)}`);
 
     if (project.description) {
       console.log(`   Description: ${project.description}`);
     }
 
-    if (project.agentCount > 0) {
-      console.log(`   Agent Names: ${project.agents.map(a => a.name).join(', ')}`);
+    if (project.agentCount > 0 && project.agents) {
+      console.log(`   Agent Names: ${project.agents.map(a => a.name || 'Unnamed Agent').join(', ')}`);
     }
 
     console.log(`   ${'─'.repeat(60)}`);

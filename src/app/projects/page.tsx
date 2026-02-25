@@ -26,12 +26,6 @@ export default function ProjectsPage() {
               >
                 🏠 Home
               </Link>
-              <Link
-                href="/projects"
-                className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md"
-              >
-                📂 Projects
-              </Link>
             </nav>
           </div>
         </div>

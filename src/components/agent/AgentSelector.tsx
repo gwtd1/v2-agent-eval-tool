@@ -11,6 +11,7 @@ interface AgentSelectorProps {
 export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelectorProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [byProject, setByProject] = useState<Record<string, Agent[]>>({});
+  const [allProjects, setAllProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -35,6 +36,7 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
         const data: AgentsResponse = await response.json();
         setAgents(data.agents);
         setByProject(data.byProject);
+        setAllProjects(data.projects || []);
         setPerformance(data.performance);
         setMethod(data.method);
 
@@ -65,7 +67,7 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
     onAgentSelect(agentPath || null);
   };
 
-  const projects = Object.keys(byProject).sort();
+  const projects = allProjects.map(p => p.attributes?.name || p.name || 'Unnamed Project').sort();
   const projectAgents = selectedProject ? byProject[selectedProject] || [] : [];
 
   if (isLoading) {

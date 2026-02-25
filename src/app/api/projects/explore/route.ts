@@ -43,20 +43,20 @@ export async function GET() {
 
     // Enhance projects with agent details and counts
     const projectDetails: ProjectDetails[] = projects.map(project => {
-      const projectAgents = agents.filter(agent => agent.project_id === project.id);
+      const projectAgents = agents.filter(agent => agent.attributes?.projectId === project.id);
 
       return {
         id: project.id,
-        name: project.name,
-        description: project.description,
+        name: project.attributes?.name || 'Unnamed Project',
+        description: project.attributes?.description || null,
         agentCount: projectAgents.length,
         agents: projectAgents.map(agent => ({
           id: agent.id,
-          name: agent.name,
-          project_id: agent.project_id
+          name: agent.attributes?.name || 'Unnamed Agent',
+          project_id: agent.attributes?.projectId || agent.project_id
         })),
-        created_at: project.created_at,
-        updated_at: project.updated_at
+        created_at: project.attributes?.createdAt || project.created_at,
+        updated_at: project.attributes?.updatedAt || project.updated_at
       };
     });
 
@@ -65,7 +65,7 @@ export async function GET() {
       if (a.agentCount !== b.agentCount) {
         return b.agentCount - a.agentCount;
       }
-      return a.name.localeCompare(b.name);
+      return (a.name || '').localeCompare(b.name || '');
     });
 
     const duration = Date.now() - startTime;
