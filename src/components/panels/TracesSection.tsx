@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { ExpandableSection } from '@/components/ui/ExpandableSection';
-import { TraceFlowDiagram } from './TraceFlowDiagram';
+import { ExpandableTracesSection } from '@/components/traces/ExpandableTracesSection';
 
 interface TracesSectionProps {
   traces: string | null;
@@ -10,49 +8,16 @@ interface TracesSectionProps {
 }
 
 /**
- * Parse traces to count entries and tool calls
+ * Enhanced TracesSection with expandable cards, timeline view, search, and filtering
+ *
+ * This component replaces the previous SVG-based TraceFlowDiagram with a more
+ * comprehensive trace viewing experience including:
+ * - Expandable trace cards with full content visibility
+ * - Timeline view for chronological visualization
+ * - Search and filtering capabilities
+ * - Copy-to-clipboard functionality
+ * - Export options (JSON, Text, CSV)
  */
-function getTraceCounts(tracesJson: string): { entries: number; toolCalls: number } {
-  try {
-    const entries = JSON.parse(tracesJson) as Array<{ tool?: unknown }>;
-    const toolCalls = entries.filter(e => e.tool !== undefined).length;
-    return { entries: entries.length, toolCalls };
-  } catch {
-    return { entries: 0, toolCalls: 0 };
-  }
-}
-
 export function TracesSection({ traces, agentName }: TracesSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  if (!traces) {
-    return null;
-  }
-
-  const { entries, toolCalls } = getTraceCounts(traces);
-
-  if (entries === 0) {
-    return null;
-  }
-
-  // Build count string
-  const countParts = [`${entries} ${entries === 1 ? 'step' : 'steps'}`];
-  if (toolCalls > 0) {
-    countParts.push(`${toolCalls} tool ${toolCalls === 1 ? 'call' : 'calls'}`);
-  }
-  const countString = countParts.join(', ');
-
-  return (
-    <ExpandableSection
-      title="Conversation Traces"
-      badge="T"
-      variant="traces"
-      count={countString}
-      isExpandable={true}
-      defaultExpanded={isExpanded}
-      onToggle={setIsExpanded}
-    >
-      <TraceFlowDiagram traces={traces} agentName={agentName} />
-    </ExpandableSection>
-  );
+  return <ExpandableTracesSection traces={traces} agentName={agentName} />;
 }
