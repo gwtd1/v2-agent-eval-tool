@@ -47,16 +47,16 @@ export async function GET() {
 
       return {
         id: project.id,
-        name: project.attributes?.name || 'Unnamed Project',
-        description: project.attributes?.description || null,
+        name: project.attributes?.name || project.name || 'Unnamed Project',
+        description: project.attributes?.description,
         agentCount: projectAgents.length,
         agents: projectAgents.map(agent => ({
           id: agent.id,
           name: agent.attributes?.name || 'Unnamed Agent',
           project_id: agent.attributes?.projectId || agent.project_id
         })),
-        created_at: project.attributes?.createdAt || project.created_at,
-        updated_at: project.attributes?.updatedAt || project.updated_at
+        created_at: project.created_at,
+        updated_at: project.updated_at
       };
     });
 

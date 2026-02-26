@@ -215,7 +215,7 @@ export function InfiniteScrollDropdown({
                   {/* No Results */}
                   {filteredItems.length === 0 && !isLoading && searchTerm && (
                     <div className="px-3 py-4 text-center text-gray-500">
-                      <span className="text-sm">No projects found for "{searchTerm}"</span>
+                      <span className="text-sm">No projects found for &quot;{searchTerm}&quot;</span>
                     </div>
                   )}
                 </>

@@ -10,9 +10,8 @@ interface AgentSelectorProps {
 }
 
 export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelectorProps) {
-  const [agents, setAgents] = useState<Agent[]>([]);
   const [byProject, setByProject] = useState<Record<string, Agent[]>>({});
-  const [allProjects, setAllProjects] = useState<any[]>([]);
+  const [allProjects, setAllProjects] = useState<Array<{id: string; name: string | null; attributes?: {name?: string}}>>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [selectedProjectName, setSelectedProjectName] = useState<string>('');
   const [selectedAgent, setSelectedAgent] = useState<string>('');
@@ -166,7 +165,7 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
 
   // Find selected project item
   const selectedProjectItem = selectedProject
-    ? projectDropdownItems.find(item => item.id === selectedProject)
+    ? projectDropdownItems.find(item => item.id === selectedProject) || null
     : null;
 
   const projectAgents = selectedProjectName ? byProject[selectedProjectName] || [] : [];

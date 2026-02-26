@@ -158,8 +158,8 @@ async function fallbackToTdxCli(projectId: string | null): Promise<NextResponse>
   console.log(`[API] TDX CLI completed in ${duration}ms`);
 
   // Filter agents by project if projectId is specified
-  let filteredAgents = agents;
-  let filteredAgentsByProject = agentsByProject;
+  const filteredAgents = agents;
+  const filteredAgentsByProject = agentsByProject;
 
   if (projectId) {
     // Note: CLI fallback doesn't have clean project filtering

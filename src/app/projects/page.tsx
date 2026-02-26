@@ -79,7 +79,7 @@ export default function ProjectsPage() {
 
           <div className="mt-4 pt-4 border-t border-blue-200">
             <p className="text-blue-600 text-xs">
-              <strong>Troubleshooting:</strong> If you don't see expected projects, verify your TD_API_KEY
+              <strong>Troubleshooting:</strong> If you don&apos;t see expected projects, verify your TD_API_KEY
               has the correct permissions in the Treasure Data console.
             </p>
           </div>
