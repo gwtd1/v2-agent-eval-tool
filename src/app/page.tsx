@@ -40,8 +40,22 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">Agent Evaluation Tool</h1>
-          <p className="mt-1 text-gray-600">Review and rate agent responses</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Agent Evaluation Tool</h1>
+              <p className="mt-1 text-gray-600">Review and rate agent responses</p>
+            </div>
+
+            {/* Navigation Links */}
+            <nav className="flex space-x-4">
+              <Link
+                href="/"
+                className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              >
+                🏠 Home
+              </Link>
+            </nav>
+          </div>
         </div>
       </header>
 

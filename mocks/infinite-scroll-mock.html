@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock: Infinite Scroll Project Dropdown</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f9fafb;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1f2937;
+            margin-bottom: 8px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .performance-badge {
+            display: inline-block;
+            background-color: #dcfce7;
+            color: #166534;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+
+        /* Custom Dropdown Styles */
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+        }
+
+        .dropdown-trigger {
+            width: 100%;
+            padding: 10px 40px 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background-color: white;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .dropdown-trigger:focus,
+        .dropdown-trigger.open {
+            border-color: #3b82f6;
+            ring: 2px;
+            ring-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .dropdown-trigger::after {
+            content: '▼';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .dropdown-trigger.open::after {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .dropdown-menu.open {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 14px;
+            color: #374151;
+            transition: background-color 0.15s;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+
+        .dropdown-item.selected {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .loading-item {
+            padding: 16px 12px;
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .pagination-info {
+            padding: 8px 12px;
+            background-color: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        /* Standard agent selector */
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background-color: white;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        select:focus {
+            border-color: #3b82f6;
+        }
+
+        select:disabled {
+            background-color: #f3f4f6;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            background-color: #f8fafc;
+            padding: 16px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .stats h3 {
+            color: #7c3aed;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .stats ul {
+            list-style: none;
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        .stats li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>♾️ Infinite Scroll Mock</h1>
+        <p class="subtitle">Custom dropdown with auto-loading pagination</p>
+
+        <div class="performance-badge">⚡ Fast API mode: Loaded in 142ms (3-5x faster)</div>
+
+        <div class="form-group">
+            <label for="project-dropdown">Project</label>
+            <div class="custom-dropdown" id="projectDropdown">
+                <div class="dropdown-trigger" id="dropdownTrigger">
+                    Select Project
+                </div>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="pagination-info">
+                        Loading projects 1-100 of 267...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="agent-select">Agent</label>
+            <select id="agent-select" disabled>
+                <option value="">Select Agent</option>
+            </select>
+        </div>
+
+        <div class="stats">
+            <h3>♾️ UX Benefits</h3>
+            <ul>
+                <li>• <strong>Seamless Loading:</strong> No pagination UI to manage</li>
+                <li>• <strong>Natural Scrolling:</strong> Familiar mobile/web behavior</li>
+                <li>• <strong>Performance:</strong> Loads only what's visible + buffer</li>
+                <li>• <strong>Large Datasets:</strong> Scales to thousands of projects</li>
+                <li>• <strong>Visual Feedback:</strong> Loading indicators during fetch</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Generate realistic project data in chunks
+        const generateProjectChunk = (start, count) => {
+            const projects = [];
+            const prefixes = [
+                'TD-Managed',
+                'Customer',
+                'Demo',
+                'Test',
+                'Production',
+                'Staging',
+                'Development'
+            ];
+
+            const types = [
+                'Creative Studio', 'Retail Analytics', 'Customer Insights', 'Marketing Automation',
+                'Data Pipeline', 'User Segmentation', 'Campaign Manager', 'Performance Tracker',
+                'Content Generator', 'Audience Builder', 'Journey Optimizer', 'Recommendation Engine',
+                'Fraud Detection', 'Risk Assessment', 'Compliance Monitor', 'Quality Assurance',
+                'Integration Hub', 'API Gateway', 'Event Processor', 'Stream Analytics',
+                'Master Data', 'Data Warehouse', 'Business Intelligence', 'Reporting Suite',
+                'Mobile Experience', 'Web Platform', 'Social Media', 'Email Marketing'
+            ];
+
+            const companies = [
+                'Acme Corp', 'Global Industries', 'TechStart', 'Enterprise Solutions',
+                'Digital Dynamics', 'Innovation Labs', 'Future Systems', 'Smart Analytics'
+            ];
+
+            for (let i = 0; i < count; i++) {
+                const index = start + i;
+                const usePrefix = Math.random() > 0.4;
+                const prefix = prefixes[index % prefixes.length];
+                const type = types[index % types.length];
+                const company = companies[index % companies.length];
+
+                if (usePrefix) {
+                    projects.push({
+                        id: `proj_${index}`,
+                        name: `${prefix}: ${type} ${Math.floor(index / 10) + 1}`
+                    });
+                } else {
+                    projects.push({
+                        id: `proj_${index}`,
+                        name: `${company} ${type} v${Math.floor(index / 20) + 1}`
+                    });
+                }
+            }
+
+            return projects;
+        };
+
+        // State management
+        let loadedProjects = [];
+        let currentPage = 0;
+        let loading = false;
+        let hasMorePages = true;
+        let selectedProject = null;
+
+        const PROJECTS_PER_PAGE = 100;
+        const TOTAL_PROJECTS = 267;
+
+        const dropdown = document.getElementById('projectDropdown');
+        const trigger = document.getElementById('dropdownTrigger');
+        const menu = document.getElementById('dropdownMenu');
+        const agentSelect = document.getElementById('agent-select');
+
+        // Dropdown functionality
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        function toggleDropdown() {
+            const isOpen = trigger.classList.contains('open');
+            if (isOpen) {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+        }
+
+        function openDropdown() {
+            trigger.classList.add('open');
+            menu.classList.add('open');
+
+            // Load initial projects if none loaded
+            if (loadedProjects.length === 0) {
+                loadMoreProjects();
+            }
+        }
+
+        function closeDropdown() {
+            trigger.classList.remove('open');
+            menu.classList.remove('open');
+        }
+
+        // Project loading functionality
+        async function loadMoreProjects() {
+            if (loading || !hasMorePages) return;
+
+            loading = true;
+            showLoadingIndicator();
+
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 400));
+
+            const startIndex = currentPage * PROJECTS_PER_PAGE;
+            const remainingProjects = TOTAL_PROJECTS - startIndex;
+            const projectsToLoad = Math.min(PROJECTS_PER_PAGE, remainingProjects);
+
+            if (projectsToLoad > 0) {
+                const newProjects = generateProjectChunk(startIndex, projectsToLoad);
+                loadedProjects = [...loadedProjects, ...newProjects];
+                currentPage++;
+
+                if (startIndex + projectsToLoad >= TOTAL_PROJECTS) {
+                    hasMorePages = false;
+                }
+
+                renderProjects();
+            } else {
+                hasMorePages = false;
+            }
+
+            hideLoadingIndicator();
+            loading = false;
+        }
+
+        function showLoadingIndicator() {
+            const existingLoader = menu.querySelector('.loading-item');
+            if (!existingLoader) {
+                const loader = document.createElement('div');
+                loader.className = 'loading-item';
+                loader.innerHTML = `
+                    <span class="loading-spinner"></span>
+                    Loading more projects...
+                `;
+                menu.appendChild(loader);
+            }
+        }
+
+        function hideLoadingIndicator() {
+            const loader = menu.querySelector('.loading-item');
+            if (loader) {
+                loader.remove();
+            }
+        }
+
+        function renderProjects() {
+            // Clear existing items (except pagination info)
+            const items = menu.querySelectorAll('.dropdown-item, .loading-item');
+            items.forEach(item => item.remove());
+
+            // Update pagination info
+            const paginationInfo = menu.querySelector('.pagination-info');
+            if (paginationInfo) {
+                const loadedCount = loadedProjects.length;
+                paginationInfo.textContent = `Showing ${loadedCount} of ${TOTAL_PROJECTS} projects`;
+            }
+
+            // Add project items
+            loadedProjects.forEach(project => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.textContent = project.name.length > 45 ? project.name.substring(0, 42) + '...' : project.name;
+                item.dataset.projectId = project.id;
+                item.dataset.projectName = project.name;
+
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectProject(project);
+                });
+
+                menu.appendChild(item);
+            });
+        }
+
+        function selectProject(project) {
+            selectedProject = project;
+            trigger.textContent = project.name.length > 40 ? project.name.substring(0, 37) + '...' : project.name;
+
+            // Update selected state
+            const items = menu.querySelectorAll('.dropdown-item');
+            items.forEach(item => {
+                item.classList.remove('selected');
+                if (item.dataset.projectId === project.id) {
+                    item.classList.add('selected');
+                }
+            });
+
+            closeDropdown();
+            loadAgents(project.name);
+        }
+
+        // Infinite scroll detection
+        menu.addEventListener('scroll', () => {
+            if (loading || !hasMorePages) return;
+
+            const scrollTop = menu.scrollTop;
+            const scrollHeight = menu.scrollHeight;
+            const clientHeight = menu.clientHeight;
+
+            // Load more when scrolled to 80% of the content
+            if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+                loadMoreProjects();
+            }
+        });
+
+        // Simulate agent loading
+        function loadAgents(projectName) {
+            agentSelect.disabled = true;
+            agentSelect.innerHTML = '<option value="">Loading agents...</option>';
+
+            setTimeout(() => {
+                agentSelect.innerHTML = '<option value="">Select Agent</option>';
+
+                const agentCount = Math.floor(Math.random() * 12) + 1;
+                const agentTypes = ['Analyst', 'Generator', 'Optimizer', 'Tracker', 'Manager', 'Assistant', 'Builder'];
+
+                for (let i = 0; i < agentCount; i++) {
+                    const option = document.createElement('option');
+                    const agentType = agentTypes[Math.floor(Math.random() * agentTypes.length)];
+                    option.value = `${projectName}-${agentType}-${i}`;
+                    option.textContent = `${agentType} Agent ${i + 1}`;
+                    agentSelect.appendChild(option);
+                }
+
+                agentSelect.disabled = false;
+            }, 250 + Math.random() * 300);
+        }
+
+        // Initialize pagination info
+        const initialPaginationInfo = document.createElement('div');
+        initialPaginationInfo.className = 'pagination-info';
+        initialPaginationInfo.textContent = 'Click to load projects...';
+        menu.appendChild(initialPaginationInfo);
+    </script>
+</body>
+</html>

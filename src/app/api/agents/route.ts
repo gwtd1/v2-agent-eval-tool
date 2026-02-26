@@ -14,13 +14,16 @@ import {
  */
 const USE_DIRECT_API = process.env.USE_DIRECT_API === 'true';
 
-export async function GET() {
-  console.log('[API] GET /api/agents - Fetching agent list');
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const projectId = url.searchParams.get('projectId');
+
+  console.log(`[API] GET /api/agents - projectId: ${projectId || 'all'}`);
   console.log(`[API] Direct API mode: ${USE_DIRECT_API}`);
 
   // Try direct API approach first if enabled
   if (USE_DIRECT_API) {
-    const apiResult = await tryDirectApiApproach();
+    const apiResult = await tryDirectApiApproach(projectId);
     if (apiResult) {
       return apiResult;
     }
@@ -29,44 +32,70 @@ export async function GET() {
   }
 
   // TDX CLI fallback approach (original implementation)
-  return await fallbackToTdxCli();
+  return await fallbackToTdxCli(projectId);
 }
 
 /**
  * Direct API approach - 3-5x performance improvement
- * Parallel API calls: 100-300ms vs 500-1500ms CLI calls
+ * Project-specific or all agents depending on projectId parameter
  */
-async function tryDirectApiApproach(): Promise<NextResponse | null> {
+async function tryDirectApiApproach(projectId: string | null): Promise<NextResponse | null> {
   try {
-    console.log('[API] Attempting direct TD LLM API approach...');
+    console.log(`[API] Attempting direct TD LLM API approach for project: ${projectId || 'all'}`);
     const startTime = Date.now();
 
     // Create API client
     const client = createTdLlmClient();
 
-    // Parallel API calls for optimal performance
-    const { projects, agents } = await client.getProjectsAndAgents();
+    if (projectId) {
+      // Project-specific agent loading
+      const [projects, agents] = await Promise.all([
+        client.getProjects(), // Still need projects for metadata
+        client.getAgents(projectId) // Filtered agents for this project
+      ]);
 
-    // Transform to existing format for backward compatibility
-    const transformedAgents = transformApiDataToAgents(projects, agents);
-    const agentsByProject = groupAgentsByProject(projects, agents);
+      const transformedAgents = transformApiDataToAgents(projects, agents);
+      const agentsByProject = groupAgentsByProject(projects, agents);
 
-    const duration = Date.now() - startTime;
-    console.log(`[API] Direct API completed in ${duration}ms`);
-    console.log(`[API] Performance improvement: ~${Math.round(1000 / duration * 3)}x faster than CLI`);
-    console.log(`[API] Found ${transformedAgents.length} agents across ${Object.keys(agentsByProject).length} projects`);
+      const duration = Date.now() - startTime;
+      console.log(`[API] Project-specific API completed in ${duration}ms`);
+      console.log(`[API] Found ${transformedAgents.length} agents for project ${projectId}`);
 
-    return NextResponse.json({
-      agents: transformedAgents,
-      byProject: agentsByProject,
-      projects: projects, // Additional project metadata
-      count: transformedAgents.length,
-      method: 'direct_api',
-      performance: {
-        duration_ms: duration,
-        approach: 'parallel_http_calls'
-      }
-    });
+      return NextResponse.json({
+        agents: transformedAgents,
+        byProject: agentsByProject,
+        projects: projects,
+        projectId: projectId,
+        count: transformedAgents.length,
+        method: 'direct_api',
+        performance: {
+          duration_ms: duration,
+          approach: 'project_filtered_fetch'
+        }
+      });
+    } else {
+      // Load all agents (legacy behavior for backward compatibility)
+      const { projects, agents } = await client.getProjectsAndAgents();
+
+      const transformedAgents = transformApiDataToAgents(projects, agents);
+      const agentsByProject = groupAgentsByProject(projects, agents);
+
+      const duration = Date.now() - startTime;
+      console.log(`[API] Direct API completed in ${duration}ms`);
+      console.log(`[API] Found ${transformedAgents.length} agents across ${Object.keys(agentsByProject).length} projects`);
+
+      return NextResponse.json({
+        agents: transformedAgents,
+        byProject: agentsByProject,
+        projects: projects,
+        count: transformedAgents.length,
+        method: 'direct_api',
+        performance: {
+          duration_ms: duration,
+          approach: 'parallel_http_calls'
+        }
+      });
+    }
 
   } catch (error) {
     console.error('[API] Direct API approach failed:', error);
@@ -80,8 +109,8 @@ async function tryDirectApiApproach(): Promise<NextResponse | null> {
  * TDX CLI fallback approach (original implementation)
  * Maintained for compatibility and error recovery
  */
-async function fallbackToTdxCli(): Promise<NextResponse> {
-  console.log('[API] Using TDX CLI fallback approach...');
+async function fallbackToTdxCli(projectId: string | null): Promise<NextResponse> {
+  console.log(`[API] Using TDX CLI fallback approach for project: ${projectId || 'all'}`);
   const startTime = Date.now();
 
   // Check TDX CLI availability
@@ -128,10 +157,22 @@ async function fallbackToTdxCli(): Promise<NextResponse> {
   const duration = Date.now() - startTime;
   console.log(`[API] TDX CLI completed in ${duration}ms`);
 
+  // Filter agents by project if projectId is specified
+  let filteredAgents = agents;
+  let filteredAgentsByProject = agentsByProject;
+
+  if (projectId) {
+    // Note: CLI fallback doesn't have clean project filtering
+    // This is a limitation of the TDX CLI approach
+    console.warn(`[API] TDX CLI doesn't support project filtering for project: ${projectId}`);
+    console.warn('[API] Consider enabling USE_DIRECT_API=true for project-specific agent loading');
+  }
+
   return NextResponse.json({
-    agents,
-    byProject: agentsByProject,
-    count: agents.length,
+    agents: filteredAgents,
+    byProject: filteredAgentsByProject,
+    projectId: projectId,
+    count: filteredAgents.length,
     method: 'tdx_cli_fallback',
     performance: {
       duration_ms: duration,

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock: Search/Filter Project Selector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f9fafb;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1f2937;
+            margin-bottom: 8px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 30px;
+        }
+
+        .search-container {
+            margin-bottom: 16px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: #3b82f6;
+            ring: 2px;
+            ring-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .search-results {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background-color: white;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        select:focus {
+            border-color: #3b82f6;
+            ring: 2px;
+            ring-color: rgba(59, 130, 246, 0.1);
+        }
+
+        select:disabled {
+            background-color: #f3f4f6;
+            cursor: not-allowed;
+        }
+
+        .performance-badge {
+            display: inline-block;
+            background-color: #dcfce7;
+            color: #166534;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .stats {
+            background-color: #f8fafc;
+            padding: 16px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .stats h3 {
+            color: #1e40af;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .stats ul {
+            list-style: none;
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        .stats li {
+            margin-bottom: 4px;
+        }
+
+        .highlight {
+            background-color: #fef3c7;
+            padding: 1px 3px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Search/Filter Mock</h1>
+        <p class="subtitle">Project selector with client-side search filtering</p>
+
+        <div class="performance-badge">⚡ Fast API mode: Loaded in 156ms (3-5x faster)</div>
+
+        <div class="search-container">
+            <input
+                type="text"
+                id="projectSearch"
+                class="search-input"
+                placeholder="🔍 Search projects by name..."
+                autocomplete="off"
+            >
+            <div class="search-results" id="searchResults">Showing all 267 projects</div>
+        </div>
+
+        <div class="form-group">
+            <label for="project-select">Project</label>
+            <select id="project-select">
+                <option value="">Select Project</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="agent-select">Agent</label>
+            <select id="agent-select" disabled>
+                <option value="">Select Agent</option>
+            </select>
+        </div>
+
+        <div class="stats">
+            <h3>🎯 UX Benefits</h3>
+            <ul>
+                <li>• <strong>Fast Discovery:</strong> Type to find projects instantly</li>
+                <li>• <strong>No Pagination:</strong> Search across all 267 projects</li>
+                <li>• <strong>Familiar UX:</strong> Standard search behavior users expect</li>
+                <li>• <strong>Progressive Enhancement:</strong> Works with existing dropdown</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Generate realistic project data (267 projects)
+        const generateProjects = () => {
+            const projects = [];
+            const prefixes = [
+                'TD-Managed',
+                'Customer',
+                'Demo',
+                'Test',
+                'Production',
+                'Staging',
+                'Development'
+            ];
+
+            const types = [
+                'Creative Studio', 'Retail Analytics', 'Customer Insights', 'Marketing Automation',
+                'Data Pipeline', 'User Segmentation', 'Campaign Manager', 'Performance Tracker',
+                'Content Generator', 'Audience Builder', 'Journey Optimizer', 'Recommendation Engine',
+                'Fraud Detection', 'Risk Assessment', 'Compliance Monitor', 'Quality Assurance',
+                'Integration Hub', 'API Gateway', 'Event Processor', 'Stream Analytics',
+                'Master Data', 'Data Warehouse', 'Business Intelligence', 'Reporting Suite',
+                'Mobile Experience', 'Web Platform', 'Social Media', 'Email Marketing',
+                'Customer Service', 'Sales Enablement', 'Partner Portal', 'Admin Dashboard'
+            ];
+
+            const companies = [
+                'Acme Corp', 'Global Industries', 'TechStart', 'Enterprise Solutions',
+                'Digital Dynamics', 'Innovation Labs', 'Future Systems', 'Smart Analytics',
+                'Data Works', 'Cloud Connect', 'NextGen Tech', 'Velocity Group'
+            ];
+
+            // Add some exact matches from real data
+            projects.push(
+                'Migrated Project',
+                'test_vs',
+                '20240924_test',
+                'AOTP',
+                'TD-Managed: Creative Studio',
+                'TD-Managed: Art of the Possible',
+                'TD-Managed: Retail Demo - 2025',
+                'TD-Managed: C-Store Demo',
+                'Greg\'s PM Agents'
+            );
+
+            // Generate remaining projects
+            for (let i = projects.length; i < 267; i++) {
+                const usePrefix = Math.random() > 0.3;
+                const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+                const type = types[Math.floor(Math.random() * types.length)];
+                const company = companies[Math.floor(Math.random() * companies.length)];
+
+                if (usePrefix) {
+                    projects.push(`${prefix}: ${type}`);
+                } else {
+                    projects.push(`${company} ${type}`);
+                }
+            }
+
+            return projects.sort();
+        };
+
+        const projects = generateProjects();
+        let filteredProjects = [...projects];
+
+        const projectSelect = document.getElementById('project-select');
+        const agentSelect = document.getElementById('agent-select');
+        const searchInput = document.getElementById('projectSearch');
+        const searchResults = document.getElementById('searchResults');
+
+        // Populate dropdown with all projects initially
+        function populateDropdown(projectList) {
+            projectSelect.innerHTML = '<option value="">Select Project</option>';
+            projectList.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project;
+                option.textContent = project.length > 50 ? project.substring(0, 47) + '...' : project;
+                projectSelect.appendChild(option);
+            });
+        }
+
+        // Search functionality
+        function filterProjects() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+
+            if (searchTerm === '') {
+                filteredProjects = [...projects];
+            } else {
+                filteredProjects = projects.filter(project =>
+                    project.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            populateDropdown(filteredProjects);
+
+            // Update search results text
+            if (searchTerm === '') {
+                searchResults.textContent = `Showing all ${projects.length} projects`;
+            } else {
+                const count = filteredProjects.length;
+                searchResults.innerHTML = `Found <span class="highlight">${count}</span> projects matching "${searchTerm}"`;
+            }
+        }
+
+        // Simulate agent loading
+        function loadAgents(projectName) {
+            agentSelect.disabled = true;
+            agentSelect.innerHTML = '<option value="">Loading agents...</option>';
+
+            // Simulate API delay
+            setTimeout(() => {
+                agentSelect.innerHTML = '<option value="">Select Agent</option>';
+
+                // Generate fake agents for this project
+                const agentCount = Math.floor(Math.random() * 8) + 1;
+                const agentTypes = ['Analyst', 'Generator', 'Optimizer', 'Tracker', 'Manager', 'Assistant'];
+
+                for (let i = 0; i < agentCount; i++) {
+                    const option = document.createElement('option');
+                    const agentType = agentTypes[Math.floor(Math.random() * agentTypes.length)];
+                    option.value = `${projectName}-${agentType}-${i}`;
+                    option.textContent = `${projectName.split(' ')[0]} ${agentType} ${i + 1}`;
+                    agentSelect.appendChild(option);
+                }
+
+                agentSelect.disabled = false;
+            }, 300 + Math.random() * 400); // 300-700ms delay
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', filterProjects);
+
+        projectSelect.addEventListener('change', (e) => {
+            if (e.target.value) {
+                loadAgents(e.target.value);
+            } else {
+                agentSelect.disabled = true;
+                agentSelect.innerHTML = '<option value="">Select Agent</option>';
+            }
+        });
+
+        // Initialize
+        populateDropdown(projects);
+
+        // Add some visual feedback for search
+        searchInput.addEventListener('focus', () => {
+            searchInput.style.borderColor = '#3b82f6';
+        });
+
+        searchInput.addEventListener('blur', () => {
+            searchInput.style.borderColor = '#d1d5db';
+        });
+    </script>
+</body>
+</html>
