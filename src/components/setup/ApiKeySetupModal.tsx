@@ -21,6 +21,7 @@ const SETUP_STEPS = [
 export function ApiKeySetupModal() {
   const {
     showSetupModal,
+    isInitializing,
     currentStep,
     setupData,
     configOptions,
@@ -51,7 +52,27 @@ export function ApiKeySetupModal() {
     }
   }, [setupData.apiKey]);
 
-  if (!showSetupModal) return null;
+  // Don't render anything while initializing setup status check
+  if (isInitializing) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            <span className="text-gray-700">Checking setup status...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Only hide modal after initialization is complete
+  if (!showSetupModal) {
+    console.log('[Setup Modal] Not showing modal - showSetupModal is false');
+    return null;
+  }
+
+  console.log('[Setup Modal] Rendering setup modal - currentStep:', currentStep);
 
   const handleApiKeyChange = (apiKey: string) => {
     setSetupData({ ...setupData, apiKey });
