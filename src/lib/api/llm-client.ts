@@ -118,6 +118,30 @@ export class TdLlmClient {
   }
 
   /**
+   * Fetch projects with server-side pagination using offset method
+   */
+  async getProjectsPaginated(page: number, limit: number): Promise<TdProject[]> {
+    console.log(`[TD API] Fetching paginated projects: page=${page}, limit=${limit}`);
+    const startTime = Date.now();
+
+    try {
+      const offset = page * limit;
+      const endpoint = `/api/projects?page[limit]=${limit}&page[offset]=${offset}`;
+      console.log(`[TD API] Using pagination: ${endpoint}`);
+
+      const response = await this.makeRequest<TdProject>(endpoint);
+      const duration = Date.now() - startTime;
+      console.log(`[TD API] Paginated fetch successful: ${response.data.length} projects in ${duration}ms`);
+
+      return response.data;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[TD API] Paginated fetch failed after ${duration}ms:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Fetch all agents from TD LLM API
    * Optionally filter by project ID
    */

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Agent, AgentsResponse } from '@/lib/types';
+import { InfiniteScrollDropdown, DropdownItem } from '@/components/ui/InfiniteScrollDropdown';
 
 interface AgentSelectorProps {
   onAgentSelect: (agentPath: string | null) => void;
@@ -17,6 +18,10 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingAgents, setIsLoadingAgents] = useState(false);
+  const [isLoadingMoreProjects, setIsLoadingMoreProjects] = useState(false);
+  const [hasMoreProjects, setHasMoreProjects] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalProjectCount, setTotalProjectCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [performance, setPerformance] = useState<AgentsResponse['performance'] | null>(null);
   const [method, setMethod] = useState<AgentsResponse['method'] | null>(null);
@@ -25,10 +30,13 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
     loadInitialProjects();
   }, []);
 
-  // Load initial projects only (not agents)
+  // Load initial projects (first page)
   async function loadInitialProjects() {
+    setIsLoading(true);
+    setCurrentPage(0);
+
     try {
-      const response = await fetch('/api/projects');
+      const response = await fetch('/api/projects?page=0&limit=50');
 
       if (response.status === 503) {
         throw new Error('TDX CLI not available. Please ensure tdx is installed and in PATH.');
@@ -40,17 +48,47 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
 
       const data = await response.json();
       setAllProjects(data.projects || []);
+      setHasMoreProjects(data.hasMore || false);
+      setTotalProjectCount(data.total || data.count || 0);
+      setCurrentPage(1); // Next page to load
       setPerformance(data.performance);
       setMethod(data.method);
 
       // Log performance info for debugging
       if (data.performance) {
-        console.log(`[AgentSelector] Loaded ${data.count || 0} projects using ${data.method} in ${data.performance.duration_ms}ms`);
+        console.log(`[AgentSelector] Loaded ${data.count || 0} projects (page 0) using ${data.method} in ${data.performance.duration_ms}ms`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  // Load more projects for infinite scroll
+  async function loadMoreProjects() {
+    if (isLoadingMoreProjects || !hasMoreProjects) return;
+
+    setIsLoadingMoreProjects(true);
+    try {
+      const response = await fetch(`/api/projects?page=${currentPage}&limit=50`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch more projects');
+      }
+
+      const data = await response.json();
+      const newProjects = data.projects || [];
+
+      setAllProjects(prev => [...prev, ...newProjects]);
+      setHasMoreProjects(data.hasMore || false);
+      setCurrentPage(prev => prev + 1);
+
+      console.log(`[AgentSelector] Loaded ${newProjects.length} more projects (page ${currentPage}, total: ${allProjects.length + newProjects.length})`);
+    } catch (err) {
+      console.error('Failed to load more projects:', err);
+    } finally {
+      setIsLoadingMoreProjects(false);
     }
   }
 
@@ -87,10 +125,8 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
   };
 
   // Handle project selection and trigger agent loading
-  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
-
-    if (!selectedValue) {
+  const handleProjectSelect = (projectItem: DropdownItem | null) => {
+    if (!projectItem) {
       setSelectedProject('');
       setSelectedProjectName('');
       setSelectedAgent('');
@@ -98,10 +134,8 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
       return;
     }
 
-    // Find the project object to get both ID and name
-    const selectedProjectObj = allProjects.find(p =>
-      (p.attributes?.name || p.name || 'Unnamed Project') === selectedValue
-    );
+    // Find the project object to get the ID
+    const selectedProjectObj = allProjects.find(p => p.id === projectItem.id);
 
     if (selectedProjectObj) {
       const projectId = selectedProjectObj.id;
@@ -123,7 +157,18 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
     onAgentSelect(agentPath || null);
   };
 
-  const projects = allProjects.map(p => p.attributes?.name || p.name || 'Unnamed Project').sort();
+  // Convert projects to dropdown items
+  const projectDropdownItems: DropdownItem[] = allProjects.map(p => ({
+    id: p.id,
+    name: p.attributes?.name || p.name || 'Unnamed Project',
+    displayName: p.attributes?.name || p.name || 'Unnamed Project'
+  }));
+
+  // Find selected project item
+  const selectedProjectItem = selectedProject
+    ? projectDropdownItems.find(item => item.id === selectedProject)
+    : null;
+
   const projectAgents = selectedProjectName ? byProject[selectedProjectName] || [] : [];
 
   if (isLoading) {
@@ -176,28 +221,19 @@ export function AgentSelector({ onAgentSelect, disabled = false }: AgentSelector
         </div>
       )}
 
-      <div>
-        <label
-          htmlFor="project-select"
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Project
-        </label>
-        <select
-          id="project-select"
-          value={selectedProjectName}
-          onChange={handleProjectChange}
-          disabled={disabled}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-        >
-          <option value="">Select Project</option>
-          {projects.map((project) => (
-            <option key={project} value={project}>
-              {project}
-            </option>
-          ))}
-        </select>
-      </div>
+      <InfiniteScrollDropdown
+        items={projectDropdownItems}
+        onItemSelect={handleProjectSelect}
+        onLoadMore={loadMoreProjects}
+        isLoading={isLoading}
+        isLoadingMore={isLoadingMoreProjects}
+        hasMore={hasMoreProjects}
+        selectedItem={selectedProjectItem}
+        placeholder="Select Project"
+        disabled={disabled}
+        label="Project"
+        totalCount={totalProjectCount}
+      />
 
       <div>
         <label
