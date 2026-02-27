@@ -104,10 +104,33 @@ export async function POST(request: NextRequest) {
         console.log('[API] Exit code non-zero but valid test results found - continuing with parsing');
         // Continue processing - don't treat as failure
       } else {
+        // Check if this is a project-related error that may need waiting
+        // TDX sometimes needs time to process agent responses (~1 minute)
+        const isProjectError = result.stdout.includes('Project not found') ||
+                               result.stderr.includes('Project not found') ||
+                               result.stderr.includes('ERROR:');
+
+        if (isProjectError) {
+          console.log('[API] TDX returned project error, waiting 60s for agent response...');
+          await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute
+
+          // Retry execution after wait
+          console.log('[API] Retrying TDX execution after wait...');
+          result = await executeTdxAgentTest(agentPath);
+          console.log(`[API] Retry TDX test completed with exit code: ${result.exitCode}`);
+
+          // Check if retry succeeded
+          const hasValidResultsAfterWait = containsValidTestResults(result.stdout);
+          if (result.exitCode === 0 || hasValidResultsAfterWait) {
+            console.log('[API] Retry succeeded, continuing with parsing');
+            // Fall through to continue processing
+          }
+        }
+
         // Check if it's a "needs test file" situation
         const needsTestFile = detectNeedsTestFile(result.stdout, result.stderr);
 
-        if (needsTestFile) {
+        if (needsTestFile && !isProjectError) {
           console.log('[API] Test file missing, attempting to create via auto-recovery');
           autoRecoveryAttempted = true;
 
