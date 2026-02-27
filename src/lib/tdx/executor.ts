@@ -132,11 +132,17 @@ export async function executeTdxAgentTest(agentPath: string): Promise<TdxCommand
   const escapedAgent = agentName.replace(/"/g, '\\"');
   const escapedProject = projectName.replace(/"/g, '\\"');
 
-  // If we have a project, set context first then run test with full path
+  // If we have a project, run test with full path
+  // TDX automatically detects project from agent path - no need to set project context explicitly
   if (projectName) {
     // TDX requires full path: agents/<project>/<agent>
     const fullPath = `agents/${escapedProject}/${escapedAgent}`;
-    const command = `tdx use llm_project "${escapedProject}" && tdx agent test "${fullPath}"`;
+    // Clear stale TDX session context before running test to prevent "Project not found" errors
+    const command = `tdx use --clear && tdx agent test "${fullPath}"`;
+
+    console.log(`[TDX Executor] Executing: ${command}`);
+    console.log(`[TDX Executor] Clearing context and auto-detecting project from path: ${fullPath}`);
+
     return executeTdxCommand(command, {
       timeout: 300000, // 5 minutes for test execution
     });
